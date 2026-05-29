@@ -1,0 +1,2889 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Harpa — Ministério de Louvor</title>
+
+<!-- PWA -->
+<meta name="application-name" content="Harpa">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Harpa">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1A1814">
+<meta name="description" content="Gestão do Ministério de Louvor">
+<link rel="manifest" href="manifest.json">
+
+<!-- Ícones iOS (inline SVG como data URI) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%231A1814'/%3E%3Crect width='512' height='512' rx='100' fill='url(%23g)'/%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23C8A84B'/%3E%3Cstop offset='1' stop-color='%238B6E2A'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ctext x='256' y='340' font-size='280' text-anchor='middle' fill='%231A1814' font-family='serif'%3E♪%3C/text%3E%3C/svg%3E">
+
+<!-- Splash screen iOS -->
+<meta name="apple-touch-startup-image" content="">
+
+<!-- Safe area para iPhone com notch -->
+<style>
+  body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+  @media (max-width: 680px) {
+    .sidebar { padding-bottom: env(safe-area-inset-bottom); }
+  }
+</style>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --gold: #C8A84B; --gold-light: #F5E9C4; --gold-dark: #8B6E2A; --gold-bg: rgba(200,168,75,0.12);
+    --dark: #111009; --dark2: #1A1814; --dark3: #22201A; --dark4: #2A2720;
+    --surface: #1E1C16; --surface2: #252219;
+    --text: #F0ECD8; --text2: #B8B09A; --text3: #7A7468; --text4: #4A4840;
+    --border: rgba(200,168,75,0.18); --border2: rgba(200,168,75,0.08); --border3: rgba(255,255,255,0.06);
+    --teal: #5DCAA5; --teal-bg: rgba(93,202,165,0.12);
+    --coral: #D85A30; --coral-bg: rgba(216,90,48,0.12);
+    --purple: #9B8EC4; --purple-bg: rgba(155,142,196,0.12);
+    --blue: #5B9BD5; --blue-bg: rgba(91,155,213,0.12);
+    --green: #6BBF6A; --green-bg: rgba(107,191,106,0.12);
+    --r: 10px; --r-lg: 14px;
+    --sidebar: 210px;
+  }
+  html, body, #root { height: 100%; }
+  body { background: var(--dark); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--text); overflow: hidden; }
+  button { cursor: pointer; font-family: inherit; }
+  input, select, textarea { font-family: inherit; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Layout */
+  .app-shell { display: flex; height: 100vh; }
+
+  /* Sidebar */
+  .sidebar { width: var(--sidebar); background: var(--dark2); border-right: 0.5px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+  .sidebar-logo { padding: 18px 16px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 0.5px solid var(--border2); }
+  .logo-icon { width: 34px; height: 34px; background: var(--gold); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+  .logo-name { font-size: 16px; font-weight: 600; color: var(--gold); letter-spacing: 0.5px; }
+  .logo-sub { font-size: 10px; color: var(--text3); }
+  .sidebar-nav { flex: 1; overflow-y: auto; padding: 12px 10px; }
+  .nav-section-label { font-size: 9px; color: var(--text4); text-transform: uppercase; letter-spacing: 1.2px; padding: 0 8px; margin: 12px 0 4px; }
+  .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 8px; font-size: 13px; color: var(--text2); cursor: pointer; transition: all 0.12s; margin-bottom: 1px; border: none; background: none; width: 100%; text-align: left; }
+  .nav-item:hover { background: var(--border2); color: var(--text); }
+  .nav-item.active { background: rgba(200,168,75,0.14); color: var(--gold); }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .nav-badge { margin-left: auto; background: var(--coral); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: 600; }
+  .nav-badge.gold { background: var(--gold); color: var(--dark); }
+  .sidebar-footer { padding: 12px 14px; border-top: 0.5px solid var(--border2); }
+  .user-row { display: flex; align-items: center; gap: 8px; }
+  .user-av { width: 28px; height: 28px; border-radius: 50%; background: var(--gold-bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--gold); flex-shrink: 0; }
+  .user-name { font-size: 12px; color: var(--text2); }
+  .user-role { font-size: 10px; color: var(--text3); }
+
+  /* Main */
+  .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar { background: var(--dark2); border-bottom: 0.5px solid var(--border); padding: 0 20px; height: 52px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .topbar-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .topbar-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .topbar-actions { display: flex; align-items: center; gap: 8px; }
+  .page-content { flex: 1; overflow-y: auto; padding: 20px; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--r-lg); padding: 16px; }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .card-title span { font-size: 11px; font-weight: 400; color: var(--text3); }
+
+  /* Grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+
+  /* Stats */
+  .stat-card { background: var(--surface2); border: 0.5px solid var(--border); border-radius: var(--r); padding: 14px 16px; }
+  .stat-label { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
+  .stat-value { font-size: 26px; font-weight: 700; color: var(--text); line-height: 1; }
+  .stat-detail { font-size: 11px; color: var(--text3); margin-top: 5px; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; border: none; transition: all 0.12s; }
+  .btn-gold { background: var(--gold); color: var(--dark); }
+  .btn-gold:hover { opacity: 0.88; }
+  .btn-ghost { background: transparent; color: var(--text2); border: 0.5px solid var(--border); }
+  .btn-ghost:hover { background: var(--border2); color: var(--text); }
+  .btn-danger { background: var(--coral-bg); color: var(--coral); border: 0.5px solid rgba(216,90,48,0.3); }
+  .btn-sm { padding: 5px 10px; font-size: 11px; border-radius: 6px; }
+  .btn svg { width: 14px; height: 14px; }
+
+  /* Tags / Badges */
+  .tag { display: inline-flex; align-items: center; font-size: 10px; padding: 2px 8px; border-radius: 6px; font-weight: 500; }
+  .tag-gold { background: var(--gold-bg); color: var(--gold); }
+  .tag-teal { background: var(--teal-bg); color: var(--teal); }
+  .tag-coral { background: var(--coral-bg); color: var(--coral); }
+  .tag-purple { background: var(--purple-bg); color: var(--purple); }
+  .tag-blue { background: var(--blue-bg); color: var(--blue); }
+  .tag-green { background: var(--green-bg); color: var(--green); }
+  .tag-gray { background: var(--border2); color: var(--text3); }
+
+  /* Avatar */
+  .av { border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0; }
+  .av-sm { width: 28px; height: 28px; font-size: 11px; }
+  .av-md { width: 36px; height: 36px; font-size: 13px; }
+  .av-lg { width: 48px; height: 48px; font-size: 16px; }
+
+  /* List items */
+  .list-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 0.5px solid var(--border2); }
+  .list-item:last-child { border: none; }
+  .list-item-info { flex: 1; min-width: 0; }
+  .list-item-name { font-size: 13px; color: var(--text); font-weight: 500; }
+  .list-item-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+  /* Aviso banner */
+  .aviso-banner { background: rgba(200,168,75,0.1); border: 0.5px solid rgba(200,168,75,0.4); border-radius: var(--r); padding: 14px 16px; margin-bottom: 16px; display: flex; gap: 12px; }
+  .aviso-banner svg { width: 18px; height: 18px; color: var(--gold); flex-shrink: 0; margin-top: 1px; }
+  .aviso-title { font-size: 13px; font-weight: 600; color: var(--gold); }
+  .aviso-body { font-size: 12px; color: var(--text2); margin-top: 3px; }
+
+  /* Ministro cards */
+  .ministro-card { background: var(--surface2); border: 0.5px solid var(--border); border-radius: var(--r-lg); padding: 16px; text-align: center; transition: border-color 0.12s; cursor: pointer; }
+  .ministro-card:hover { border-color: var(--gold); }
+  .ministro-card .m-name { font-size: 13px; font-weight: 600; color: var(--text); margin: 8px 0 2px; }
+  .ministro-card .m-role { font-size: 11px; color: var(--text3); margin-bottom: 8px; }
+  .ministro-card .m-tags { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+
+  /* Escala */
+  .escala-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--r-lg); overflow: hidden; margin-bottom: 12px; }
+  .escala-header { background: var(--surface2); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid var(--border2); }
+  .escala-date { font-size: 13px; font-weight: 600; color: var(--text); }
+  .escala-culto { font-size: 11px; color: var(--text3); }
+  .escala-body { padding: 12px 16px; }
+  .escala-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 0.5px solid var(--border2); }
+  .escala-row:last-child { border: none; }
+  .escala-role-label { font-size: 11px; color: var(--text3); width: 110px; flex-shrink: 0; }
+  .escala-names { font-size: 12px; color: var(--text); }
+
+  /* Música */
+  .musica-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 0.5px solid var(--border2); cursor: pointer; transition: background 0.1s; border-radius: 6px; padding: 8px 10px; margin: 0 -10px; }
+  .musica-row:last-child { border: none; }
+  .musica-row:hover { background: var(--border2); }
+  .musica-num { width: 20px; font-size: 12px; color: var(--text4); text-align: center; flex-shrink: 0; }
+  .musica-cover { width: 36px; height: 36px; border-radius: 7px; background: var(--dark4); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .musica-cover svg { width: 16px; height: 16px; color: var(--gold); }
+  .musica-info { flex: 1; min-width: 0; }
+  .musica-name { font-size: 13px; color: var(--text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .musica-artist { font-size: 11px; color: var(--text3); }
+  .tom-pill { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 6px; background: var(--gold-bg); color: var(--gold); flex-shrink: 0; }
+
+  /* Studio */
+  .stem-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 0.5px solid var(--border2); }
+  .stem-row:last-child { border: none; }
+  .stem-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .stem-icon svg { width: 15px; height: 15px; }
+  .stem-label { font-size: 13px; color: var(--text); width: 130px; flex-shrink: 0; }
+  .stem-bar-wrap { flex: 1; height: 4px; background: var(--dark4); border-radius: 2px; overflow: hidden; cursor: pointer; }
+  .stem-bar-fill { height: 100%; border-radius: 2px; transition: width 0.2s; }
+  .stem-mute { width: 28px; height: 28px; border-radius: 6px; border: 0.5px solid var(--border); background: transparent; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.12s; }
+  .stem-mute:hover { background: var(--border2); }
+  .stem-mute.muted { background: var(--coral-bg); border-color: var(--coral); }
+  .stem-mute svg { width: 13px; height: 13px; }
+
+  /* Tom keys */
+  .tom-key { width: 38px; height: 38px; border-radius: 8px; border: 0.5px solid var(--border); background: var(--surface); color: var(--text2); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.12s; display: flex; align-items: center; justify-content: center; }
+  .tom-key:hover { border-color: var(--gold); color: var(--gold); }
+  .tom-key.active { background: var(--gold); color: var(--dark); border-color: var(--gold); }
+
+  /* Calendar */
+  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
+  .cal-th { font-size: 10px; color: var(--text4); text-align: center; padding: 4px 0; }
+  .cal-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: var(--text3); border-radius: 6px; cursor: pointer; position: relative; }
+  .cal-day:hover { background: var(--border2); }
+  .cal-day.today { background: var(--gold-bg); color: var(--gold); font-weight: 700; }
+  .cal-day.has-ev::after { content:''; display:block; width:4px; height:4px; border-radius:50%; background:var(--gold); position:absolute; bottom:3px; }
+  .cal-day.other { opacity: 0.3; }
+  .cal-day.selected { background: rgba(200,168,75,0.25); color: var(--gold); }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+  .modal { background: var(--dark2); border: 0.5px solid var(--border); border-radius: var(--r-lg); padding: 24px; width: 100%; max-width: 480px; max-height: 80vh; overflow-y: auto; }
+  .modal-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+
+  /* Form */
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 11px; color: var(--text3); margin-bottom: 5px; display: block; }
+  .form-input { width: 100%; background: var(--dark3); border: 0.5px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 13px; color: var(--text); outline: none; transition: border-color 0.12s; }
+  .form-input:focus { border-color: var(--gold); }
+  .form-select { width: 100%; background: var(--dark3); border: 0.5px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 13px; color: var(--text); outline: none; }
+  .form-select option { background: var(--dark3); }
+
+  /* Upload area */
+  .upload-area { border: 1px dashed var(--border); border-radius: var(--r); padding: 28px 20px; text-align: center; cursor: pointer; transition: border-color 0.12s; }
+  .upload-area:hover { border-color: var(--gold); }
+  .upload-area svg { width: 32px; height: 32px; color: var(--text3); margin-bottom: 8px; }
+  .upload-area p { font-size: 13px; color: var(--text2); }
+  .upload-area span { font-size: 11px; color: var(--text3); }
+
+  /* Player */
+  .mini-player { background: var(--dark2); border-top: 0.5px solid var(--border); padding: 10px 20px; display: flex; align-items: center; gap: 14px; flex-shrink: 0; height: 60px; }
+  .player-track { flex: 2; }
+  .player-bar-wrap { height: 3px; background: var(--dark4); border-radius: 2px; overflow: hidden; cursor: pointer; }
+  .player-bar-fill { height: 100%; background: var(--gold); border-radius: 2px; transition: width 0.5s linear; }
+  .player-times { display: flex; justify-content: space-between; font-size: 10px; color: var(--text3); margin-top: 4px; }
+  .play-btn { width: 34px; height: 34px; border-radius: 50%; background: var(--gold); border: none; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: opacity 0.12s; }
+  .play-btn:hover { opacity: 0.85; }
+  .play-btn svg { width: 15px; height: 15px; color: var(--dark); }
+  .ctrl-btn { background: none; border: none; color: var(--text3); display: flex; align-items: center; justify-content: center; transition: color 0.12s; padding: 4px; }
+  .ctrl-btn:hover { color: var(--text); }
+  .ctrl-btn svg { width: 18px; height: 18px; }
+
+  /* Search */
+  .search-wrap { position: relative; }
+  .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--text3); }
+  .search-input { background: var(--dark3); border: 0.5px solid var(--border); border-radius: 8px; padding: 8px 12px 8px 32px; font-size: 12px; color: var(--text); outline: none; width: 200px; }
+  .search-input:focus { border-color: var(--gold); }
+  .search-input::placeholder { color: var(--text4); }
+
+  /* Divider */
+  .divider { height: 0.5px; background: var(--border2); margin: 16px 0; }
+
+  /* Settings */
+  .settings-section { margin-bottom: 24px; }
+  .settings-title { font-size: 12px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+
+  /* Notifications bell */
+  .notif-dot { position: relative; }
+  .notif-dot::after { content:''; position:absolute; top:2px; right:2px; width:7px; height:7px; background:var(--coral); border-radius:50%; border:1.5px solid var(--dark2); }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--dark2); border: 0.5px solid var(--border); border-radius: 8px; padding: 10px 18px; font-size: 13px; color: var(--text); z-index: 200; box-shadow: 0 4px 20px rgba(0,0,0,0.4); animation: toastIn 0.2s ease; }
+  @keyframes toastIn { from { opacity:0; transform: translateX(-50%) translateY(8px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+
+  /* ── MOBILE ────────────────────────────────────────────────── */
+  @media (max-width: 680px) {
+
+    .app-shell { flex-direction: column; }
+
+    .sidebar {
+      width: 100% !important;
+      height: 64px;
+      min-height: 64px;
+      flex-direction: row;
+      order: 2;
+      border-right: none;
+      border-top: 0.5px solid var(--border);
+      overflow: visible;          /* era hidden — causava corte dos ícones */
+      flex-shrink: 0;
+      background: var(--dark2);
+      z-index: 50;
+    }
+
+    .sidebar-logo   { display: none; }
+    .sidebar-footer { display: none; }
+
+    .sidebar-nav {
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      justify-content: space-around;
+      width: 100%;
+      padding: 0;
+      overflow: visible;
+    }
+
+    .nav-section-label { display: none; }
+
+    .nav-item {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      padding: 6px 2px 4px;
+      border-radius: 0;
+      font-size: 9px;
+      flex: 1;
+      min-width: 0;
+      position: relative;
+      border-bottom: 2px solid transparent;
+      margin: 0;
+    }
+
+    .nav-item.active {
+      border-bottom: 2px solid var(--gold);
+      background: transparent;
+    }
+
+    /* Ícones visíveis e bem dimensionados */
+    .nav-item > span:first-child {
+      width: 22px !important;
+      height: 22px !important;
+      flex-shrink: 0;
+    }
+    .nav-item svg { width: 22px !important; height: 22px !important; }
+
+    /* Label de texto do item */
+    .nav-item > span:last-child {
+      display: block !important;
+      font-size: 9px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 52px;
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    .nav-badge {
+      position: absolute;
+      top: 2px;
+      right: 6px;
+      font-size: 8px;
+      padding: 1px 4px;
+      min-width: 14px;
+      text-align: center;
+      border-radius: 8px;
+    }
+
+    .main-area { flex: 1; min-height: 0; order: 1; overflow: hidden; }
+
+    .topbar { height: 48px; padding: 0 14px; }
+    .topbar-title { font-size: 14px; }
+    .topbar-sub   { display: none; }
+
+    .page-content { padding: 12px 12px 16px; }
+
+    .grid-2, .grid-4 { grid-template-columns: 1fr !important; gap: 10px; }
+    .grid-3 { grid-template-columns: 1fr 1fr !important; gap: 8px; }
+
+    .card { padding: 12px; }
+
+    .tom-key { width: 32px; height: 32px; font-size: 10px; }
+    .stem-label { width: 80px; font-size: 11px; }
+
+    .mini-player { padding: 8px 12px; height: 52px; gap: 8px; }
+    .player-track { display: none; }
+
+    .modal-overlay { padding: 0; align-items: flex-end; }
+    .modal {
+      max-width: 100% !important;
+      max-height: 90vh;
+      border-radius: 16px 16px 0 0;
+      padding: 20px 16px 24px;
+    }
+
+    .toast { bottom: 74px; font-size: 12px; padding: 8px 14px; max-width: 88vw; text-align: center; }
+
+    .btn { min-height: 38px; }
+    .btn-sm { min-height: 30px; font-size: 11px; }
+
+    .aviso-banner { flex-direction: column; gap: 8px; }
+    .form-input, .form-select { padding: 11px 12px; font-size: 14px; }
+    .escalas-grid { grid-template-columns: 1fr !important; }
+
+    /* Safe area iPhone */
+    .sidebar { padding-bottom: env(safe-area-inset-bottom); height: calc(64px + env(safe-area-inset-bottom)); }
+  }
+
+  /* Tablet */
+  @media (min-width: 681px) and (max-width: 900px) {
+    :root { --sidebar: 56px; }
+    .logo-name, .logo-sub, .nav-section-label, .user-name, .user-role { display: none; }
+    .nav-item { justify-content: center; padding: 10px; }
+    .nav-item span { display: none !important; }
+    .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// ── DATA ──────────────────────────────────────────────────────────
+// acesso: 'admin'=edita tudo | 'ministro'=confirma/vê repertório | 'membro'=só visualiza
+const MEMBROS = [
+  { id:1,  nome:'Pastor Éder',  papel:'Líder / Pastor',          funcoes:['Líder','Pastor'],             cor:'#C8A84B', tipo:'liderança', pin:'1234', acesso:'admin' },
+  { id:2,  nome:'Pastora Hilda',papel:'Pastora / Ministra',       funcoes:['Pastora','Ministra'],         cor:'#D4537E', tipo:'liderança', pin:'1234', acesso:'ministro' },
+  { id:3,  nome:'Pastor Igor',  papel:'Pastor / Ministro',        funcoes:['Pastor','Ministro'],          cor:'#378ADD', tipo:'liderança', pin:'1234', acesso:'ministro' },
+  { id:4,  nome:'Fran',         papel:'Ministra de Louvor',       funcoes:['Ministra de louvor'],         cor:'#D85A30', tipo:'ministro',  pin:'1234', acesso:'ministro' },
+  { id:5,  nome:'Guilherme',    papel:'Ministro de Louvor',       funcoes:['Ministro de louvor'],         cor:'#7F77DD', tipo:'ministro',  pin:'1234', acesso:'ministro' },
+  { id:6,  nome:'Keith',        papel:'Ministra de Louvor',       funcoes:['Ministra de louvor'],         cor:'#5DCAA5', tipo:'ministro',  pin:'1234', acesso:'ministro' },
+  { id:7,  nome:'Kimberly',     papel:'Back Vocal',               funcoes:['Back vocal'],                 cor:'#ED93B1', tipo:'musico',    pin:'1234', acesso:'membro' },
+  { id:8,  nome:'Lucimara',     papel:'Back Vocal',               funcoes:['Back vocal'],                 cor:'#EF9F27', tipo:'musico',    pin:'1234', acesso:'membro' },
+  { id:9,  nome:'Fabi',         papel:'Back Vocal',               funcoes:['Back vocal'],                 cor:'#F0997B', tipo:'musico',    pin:'1234', acesso:'membro' },
+  { id:10, nome:'Hilma',        papel:'Back Vocal',               funcoes:['Back vocal'],                 cor:'#9FE1CB', tipo:'musico',    pin:'1234', acesso:'membro' },
+  { id:11, nome:'Mara',         papel:'Back Vocal',               funcoes:['Back vocal'],                 cor:'#AFA9EC', tipo:'musico',    pin:'1234', acesso:'membro' },
+  { id:12, nome:'Luciel',       papel:'Tecladista',               funcoes:['Teclado'],                    cor:'#5B9BD5', tipo:'musico',    pin:'1234', acesso:'membro' },
+  { id:13, nome:'Katryel',      papel:'Baixista',                 funcoes:['Baixo'],                      cor:'#6BBF6A', tipo:'musico',    pin:'1234', acesso:'membro' },
+  { id:14, nome:'Fagner',       papel:'Baterista',                funcoes:['Bateria'],                    cor:'#BA7517', tipo:'musico',    pin:'1234', acesso:'membro' },
+  { id:15, nome:'Miguel',       papel:'Baterista',                funcoes:['Bateria'],                    cor:'#C04828', tipo:'musico',    pin:'1234', acesso:'membro' },
+  { id:16, nome:'Pablo',        papel:'Guitarrista',              funcoes:['Guitarra'],                   cor:'#534AB7', tipo:'musico',    pin:'1234', acesso:'membro' },
+  { id:17, nome:'Nanda',        papel:'Guitarrista / Tecladista', funcoes:['Guitarra','Teclado'],          cor:'#D4537E', tipo:'musico',    pin:'1234', acesso:'admin' },
+  { id:18, nome:'Luiz',         papel:'Baixista',                 funcoes:['Baixo'],                      cor:'#0F6E56', tipo:'musico',    pin:'1234', acesso:'membro' },
+  { id:19, nome:'Gustavo',      papel:'Tecladista / Back',        funcoes:['Teclado','Back vocal'],        cor:'#854F0B', tipo:'musico',    pin:'1234', acesso:'membro' },
+  { id:20, nome:'Wesley Fábio', papel:'Violonista',               funcoes:['Violão'],                     cor:'#185FA5', tipo:'musico',    pin:'1234', acesso:'membro' },
+];
+
+const ESCALAS_INICIAIS = [
+  { id:1,  data:'29/05/2026', dia:'Quarta-feira', culto:'Culto de quarta', ceia:false, ministerio:'Fran', vocal:'Fabiana - Hilma', musicos:{ baixo:'Katryel', guitarra:'Nanda', teclado:'Luciel', bateria:'Miguel' }, repertorio:[] },
+  { id:2,  data:'31/05/2026', dia:'Domingo',      culto:'2 cultos',        ceia:false, ministerio:'Fran', vocal:'Fabiana - Hilma', musicos:{ baixo:'Katryel', guitarra:'Nanda', teclado:'Luciel', bateria:'Miguel' }, repertorio:[] },
+  { id:3,  data:'03/06/2026', dia:'Quarta-feira', culto:'Culto de quarta', ceia:false, ministerio:'PR-Eder', vocal:'Fran - Lucimara - Hilma', musicos:{ baixo:'Katryel', guitarra:'Pablo', teclado:'Nanda', bateria:'Miguel' }, repertorio:[] },
+  { id:4,  data:'07/06/2026', dia:'Domingo',      culto:'2 cultos',        ceia:false, ministerio:'PR-Eder', vocal:'Fran - Lucimara - Mara', musicos:{ baixo:'Katryel', guitarra:'Pablo', teclado:'Nanda', bateria:'Miguel' }, repertorio:[] },
+  { id:5,  data:'10/06/2026', dia:'Quarta-feira', culto:'Culto de quarta', ceia:true,  ministerio:'Guilherme / PR-Eder', vocal:'Kimberly - Fran - Keitly', musicos:{ baixo:'Katryel', guitarra:'Nanda', teclado:'Gustavo', bateria:'Fagner' }, repertorio:[] },
+  { id:6,  data:'14/06/2026', dia:'Domingo',      culto:'2 cultos — CEIA', ceia:true,  ministerio:'Guilherme / PR-Eder', vocal:'Kimberly - Fran - Keitly', musicos:{ baixo:'Katryel', guitarra:'Nanda', teclado:'Gustavo', bateria:'Fagner' }, repertorio:[] },
+  { id:7,  data:'17/06/2026', dia:'Quarta-feira', culto:'Culto de quarta', ceia:false, ministerio:'Keitly', vocal:'Fabiana - Fran', musicos:{ baixo:'Katryel', guitarra:'Nanda', teclado:'Luciel', bateria:'Fagner' }, repertorio:[] },
+  { id:8,  data:'21/06/2026', dia:'Domingo',      culto:'2 cultos',        ceia:false, ministerio:'Keitly', vocal:'Fabiana - Fran', musicos:{ baixo:'Katryel', guitarra:'Nanda', teclado:'Luciel', bateria:'Fagner' }, repertorio:[] },
+  { id:9,  data:'24/06/2026', dia:'Quarta-feira', culto:'Culto de quarta', ceia:false, ministerio:'Fran', vocal:'Mara - Lucimara - Fabiana', musicos:{ baixo:'Katryel', guitarra:'Pablo', teclado:'Nanda', bateria:'Miguel' }, repertorio:[] },
+  { id:10, data:'28/06/2026', dia:'Domingo',      culto:'2 cultos',        ceia:false, ministerio:'Fran', vocal:'Mara - Lucimara - Fabiana', musicos:{ baixo:'Katryel', guitarra:'Pablo', teclado:'Nanda', bateria:'Miguel' }, repertorio:[] },
+  { id:11, data:'01/07/2026', dia:'Quarta-feira', culto:'Culto de quarta', ceia:false, ministerio:'PR-Eder', vocal:'Fabiana - Keitly - Hilma', musicos:{ baixo:'Katryel', guitarra:'Nanda', teclado:'Luciel', bateria:'Fagner' }, repertorio:[] },
+  { id:12, data:'05/07/2026', dia:'Domingo',      culto:'2 cultos',        ceia:false, ministerio:'PR-Eder', vocal:'Fabiana - Keitly - Mara', musicos:{ baixo:'Katryel', guitarra:'Nanda', teclado:'Luciel', bateria:'Fagner' }, repertorio:[] },
+  { id:13, data:'08/07/2026', dia:'Quarta-feira', culto:'Culto de quarta', ceia:true,  ministerio:'Guilherme', vocal:'Kimberly - Fabiana', musicos:{ baixo:'Katryel', guitarra:'Nanda', teclado:'Gustavo', bateria:'Miguel' }, repertorio:[] },
+  { id:14, data:'12/07/2026', dia:'Domingo',      culto:'2 cultos — CEIA', ceia:true,  ministerio:'Guilherme', vocal:'Kimberly - Fabiana', musicos:{ baixo:'Katryel', guitarra:'Nanda', teclado:'Gustavo', bateria:'Miguel' }, repertorio:[] },
+  { id:15, data:'15/07/2026', dia:'Quarta-feira', culto:'Culto de quarta', ceia:false, ministerio:'Fran', vocal:'Lucimara - Fabiana', musicos:{ baixo:'Katryel', guitarra:'Pablo', teclado:'Nanda', bateria:'Miguel' }, repertorio:[] },
+  { id:16, data:'19/07/2026', dia:'Domingo',      culto:'2 cultos',        ceia:false, ministerio:'Fran', vocal:'Lucimara - Fabiana', musicos:{ baixo:'Katryel', guitarra:'Pablo', teclado:'Nanda', bateria:'Miguel' }, repertorio:[] },
+];
+
+const MUSICAS_INICIAIS = [
+  { id:1, nome:'Oceanos', artista:'Hillsong', tom:'Ré', bpm:68 },
+  { id:2, nome:'Nada Além do Sangue', artista:'Fernandinho', tom:'Mi', bpm:75 },
+  { id:3, nome:'Lugar Secreto', artista:'Gabriela Rocha', tom:'Lá', bpm:72 },
+  { id:4, nome:'Me Atraiu', artista:'Ministério Zoe', tom:'Sol', bpm:80 },
+  { id:5, nome:'Pra Sempre', artista:'Aline Barros', tom:'Fá', bpm:90 },
+  { id:6, nome:'Boa Notícia', artista:'Fernandinho', tom:'Ré', bpm:95 },
+  { id:7, nome:'Creio', artista:'Gabriela Rocha', tom:'Si♭', bpm:78 },
+  { id:8, nome:'Espírito de Deus', artista:'Renascer Praise', tom:'Mi', bpm:70 },
+  { id:9, nome:'Grande é o Senhor', artista:'Diante do Trono', tom:'Sol', bpm:85 },
+  { id:10, nome:'Vai Chover', artista:'Ministério Zoe', tom:'Ré', bpm:88 },
+  { id:11, nome:'Deus Cuida de Mim', artista:'Fernandinho', tom:'Mi', bpm:82 },
+  { id:12, nome:'Sobre Tudo', artista:'Hillsong', tom:'Lá', bpm:76 },
+];
+
+const AVISOS_INICIAIS = [
+  { id:2, titulo:'Ensaio geral — Sábado 07/06 às 19h', corpo:'Presença importante para todos os escalados no domingo 07/06.', tipo:'info', lido:false, data:'2 dias', destinatario:'todos' },
+  { id:3, titulo:'Escala de maio/julho publicada', corpo:'A escala completa de maio a julho já está disponível no app.', tipo:'info', lido:true, data:'5 dias', destinatario:'todos' },
+];
+
+const TONS = ['Dó','Dó#','Ré','Ré#','Mi','Fá','Fá#','Sol','Sol#','Lá','Lá#','Si'];
+
+// ── Detecta função do membro em uma escala ───────────────────────
+// Retorna array com todas as funções encontradas
+function funcaoNaEscala(nomeUsuario, escala) {
+  if (!nomeUsuario || !escala) return null;
+
+  const normalizar = s => s?.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9 ]/g,'').trim() || '';
+
+  const nomeNorm = normalizar(nomeUsuario);
+  const variacoes = new Set([nomeNorm]);
+
+  nomeNorm.split(' ').filter(p => p.length > 2).forEach(p => {
+    variacoes.add(p);
+    if (p.length >= 4) variacoes.add(p.slice(0, 4));
+    if (p.length >= 5) variacoes.add(p.slice(0, 5));
+  });
+  if (nomeNorm.includes('pastor') || nomeNorm.startsWith('pr')) {
+    nomeNorm.split(' ').filter(p => p.length > 2 && !['pastor','pastora','pr'].includes(p)).forEach(p => {
+      variacoes.add('pr-' + p);
+      variacoes.add('pr ' + p);
+    });
+  }
+
+  const bate = (campo) => {
+    if (!campo) return false;
+    const c = normalizar(campo);
+    return [...variacoes].some(v => v.length >= 3 && c.includes(v));
+  };
+
+  // Coleta TODAS as funções onde o membro aparece
+  const funcoes = [];
+  if (bate(escala.ministerio))        funcoes.push('Ministro(a)');
+  if (bate(escala.vocal))             funcoes.push('Vocal / Back');
+  if (bate(escala.musicos?.guitarra)) funcoes.push('Guitarra');
+  if (bate(escala.musicos?.teclado))  funcoes.push('Teclado');
+  if (bate(escala.musicos?.baixo))    funcoes.push('Baixo');
+  if (bate(escala.musicos?.bateria))  funcoes.push('Bateria');
+  if (bate(escala.musicos?.violao))   funcoes.push('Violão');
+
+  return funcoes.length > 0 ? funcoes.join(' · ') : null;
+}
+
+// Converte "DD/MM/AAAA" para objeto Date — robusto
+function parseData(str) {
+  if (!str) return new Date(0);
+  // Remove espaços e divide
+  const partes = str.trim().split('/');
+  if (partes.length < 3) return new Date(0);
+  const d = parseInt(partes[0], 10);
+  const m = parseInt(partes[1], 10);
+  const a = parseInt(partes[2], 10);
+  // new Date(ano, mes-1, dia) — sem timezone
+  const dt = new Date(a, m - 1, d, 12, 0, 0, 0); // meio-dia para evitar DST
+  return isNaN(dt.getTime()) ? new Date(0) : dt;
+}
+
+// Retorna escalas futuras (hoje inclusive) onde o usuário aparece, ordenadas por data
+function escalasDoUsuario(nomeUsuario, escalas) {
+  const agora = new Date();
+  // Compara só a data, sem hora
+  const hojeMs = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate()).getTime();
+  return escalas
+    .filter(e => {
+      const temFuncao = funcaoNaEscala(nomeUsuario, e) !== null;
+      const dataMs = parseData(e.data).getTime();
+      return temFuncao && dataMs >= hojeMs;
+    })
+    .sort((a, b) => parseData(a.data).getTime() - parseData(b.data).getTime());
+}
+
+// Próxima escala geral (qualquer pessoa), filtrando passadas
+function proximaEscalaGeral(escalas) {
+  const agora = new Date();
+  const hojeMs = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate()).getTime();
+  return escalas
+    .filter(e => parseData(e.data).getTime() >= hojeMs)
+    .sort((a, b) => parseData(a.data).getTime() - parseData(b.data).getTime())[0] || null;
+}
+
+
+// ── LOGIN SCREEN ──────────────────────────────────────────────────
+function TelaLogin({ onLogin }) {
+  const [step, setStep] = useState('nome');   // 'nome' | 'pin'
+  const [busca, setBusca] = useState('');
+  const [membroSel, setMembroSel] = useState(null);
+  const [pin, setPin] = useState('');
+  const [erro, setErro] = useState('');
+  const pinRef = React.useRef();
+
+  const filtrados = MEMBROS.filter(m =>
+    m.nome.toLowerCase().includes(busca.toLowerCase())
+  );
+
+  const selecionarMembro = (m) => {
+    setMembroSel(m);
+    setStep('pin');
+    setPin('');
+    setErro('');
+    setTimeout(() => pinRef.current?.focus(), 100);
+  };
+
+  const digitarPin = (d) => {
+    if (pin.length >= 4) return;
+    const novo = pin + d;
+    setPin(novo);
+    if (novo.length === 4) {
+      setTimeout(() => {
+        if (novo === membroSel.pin) {
+          onLogin(membroSel);
+        } else {
+          setErro('PIN incorreto. Tente novamente.');
+          setPin('');
+        }
+      }, 150);
+    }
+  };
+
+  const voltarNome = () => { setStep('nome'); setMembroSel(null); setPin(''); setErro(''); setBusca(''); };
+
+  return (
+    <div style={{
+      minHeight:'100vh', background:'var(--dark)',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      padding:20
+    }}>
+      <div style={{width:'100%', maxWidth:360}}>
+        {/* Logo */}
+        <div style={{textAlign:'center', marginBottom:32}}>
+          <div style={{
+            width:56, height:56, background:'var(--gold)', borderRadius:14,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            fontSize:28, margin:'0 auto 12px'
+          }}>♪</div>
+          <div style={{fontSize:22, fontWeight:700, color:'var(--gold)', letterSpacing:1}}>Harpa</div>
+          <div style={{fontSize:12, color:'var(--text3)', marginTop:4}}>Ministério de Louvor</div>
+        </div>
+
+        {step === 'nome' && (
+          <div className="card" style={{padding:20}}>
+            <div style={{fontSize:14, fontWeight:600, color:'var(--text)', marginBottom:4}}>Quem é você?</div>
+            <div style={{fontSize:12, color:'var(--text3)', marginBottom:14}}>Selecione seu nome na lista</div>
+            <div className="search-wrap" style={{marginBottom:12}}>
+              <Icon name="search"/>
+              <input
+                className="search-input" style={{width:'100%'}}
+                placeholder="Buscar nome..."
+                value={busca} onChange={e=>setBusca(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div style={{maxHeight:280, overflowY:'auto', display:'flex', flexDirection:'column', gap:4}}>
+              {filtrados.map(m => (
+                <div key={m.id}
+                  onClick={()=>selecionarMembro(m)}
+                  style={{
+                    display:'flex', alignItems:'center', gap:10,
+                    padding:'9px 12px', borderRadius:8, cursor:'pointer',
+                    border:'0.5px solid var(--border)', background:'var(--surface2)',
+                    transition:'border-color 0.1s'
+                  }}
+                  onMouseEnter={e=>e.currentTarget.style.borderColor='var(--gold)'}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}
+                >
+                  <div style={{
+                    width:32, height:32, borderRadius:'50%', flexShrink:0,
+                    background:m.cor+'22', color:m.cor,
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    fontSize:12, fontWeight:700, border:`1.5px solid ${m.cor}44`
+                  }}>{m.nome.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13, fontWeight:500, color:'var(--text)'}}>{m.nome}</div>
+                    <div style={{fontSize:11, color:'var(--text3)'}}>{m.papel}</div>
+                  </div>
+                  <span style={{fontSize:10, color:'var(--text4)'}}>›</span>
+                </div>
+              ))}
+              {filtrados.length === 0 && (
+                <div style={{textAlign:'center', padding:20, color:'var(--text3)', fontSize:13}}>
+                  Nenhum resultado
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {step === 'pin' && membroSel && (
+          <div className="card" style={{padding:24, textAlign:'center'}}>
+            <button onClick={voltarNome} style={{background:'none',border:'none',color:'var(--text3)',fontSize:12,cursor:'pointer',marginBottom:16,display:'flex',alignItems:'center',gap:4}}>
+              ← Voltar
+            </button>
+            <div style={{
+              width:48, height:48, borderRadius:'50%', margin:'0 auto 10px',
+              background:membroSel.cor+'22', color:membroSel.cor,
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize:18, fontWeight:700, border:`2px solid ${membroSel.cor}44`
+            }}>{membroSel.nome.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()}</div>
+            <div style={{fontSize:15, fontWeight:600, color:'var(--text)', marginBottom:2}}>{membroSel.nome}</div>
+            <div style={{fontSize:12, color:'var(--text3)', marginBottom:20}}>{membroSel.papel}</div>
+
+            <div style={{fontSize:13, color:'var(--text2)', marginBottom:12}}>Digite seu PIN</div>
+
+            {/* Indicadores de PIN */}
+            <div style={{display:'flex', justifyContent:'center', gap:12, marginBottom:20}}>
+              {[0,1,2,3].map(i => (
+                <div key={i} style={{
+                  width:14, height:14, borderRadius:'50%',
+                  background: i < pin.length ? 'var(--gold)' : 'var(--dark4)',
+                  border: '1.5px solid ' + (i < pin.length ? 'var(--gold)' : 'var(--border)'),
+                  transition:'all 0.15s'
+                }}/>
+              ))}
+            </div>
+
+            {erro && <div style={{fontSize:12, color:'var(--coral)', marginBottom:12}}>{erro}</div>}
+
+            {/* Teclado numérico */}
+            <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, maxWidth:220, margin:'0 auto'}}>
+              {[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map((d,i) => (
+                <button key={i}
+                  onClick={()=>{ if(d==='⌫') setPin(p=>p.slice(0,-1)); else if(d!=='') digitarPin(String(d)); }}
+                  disabled={d===''}
+                  style={{
+                    height:52, borderRadius:10, fontSize:d==='⌫'?18:16, fontWeight:500,
+                    background: d==='' ? 'transparent' : 'var(--surface2)',
+                    border: d==='' ? 'none' : '0.5px solid var(--border)',
+                    color: 'var(--text)', cursor: d==='' ? 'default' : 'pointer',
+                    transition:'all 0.1s'
+                  }}
+                  onMouseEnter={e=>{if(d!=='')e.currentTarget.style.background='var(--gold-bg)';}}
+                  onMouseLeave={e=>{if(d!=='')e.currentTarget.style.background='var(--surface2)';}}
+                >{d}</button>
+              ))}
+            </div>
+            <div style={{fontSize:11, color:'var(--text4)', marginTop:16}}>PIN padrão: 1234</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── ICONS ─────────────────────────────────────────────────────────
+const Icon = ({ name, size=16, style={} }) => {
+  const icons = {
+    dashboard: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
+    bell: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+    users: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+    calendar: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+    music: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>,
+    mic: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>,
+    settings: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+    plus: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+    play: <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
+    pause: <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>,
+    skip: <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" strokeWidth="2"/></svg>,
+    prev: <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" strokeWidth="2"/></svg>,
+    alert: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+    info: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+    check: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>,
+    x: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+    upload: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>,
+    download: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+    volume: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>,
+    mute: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>,
+    search: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+    edit: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+    trash: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
+    send: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
+    harp: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 3C5.5 3 3 6 3 9v12h3V9c0-1.7 1.3-3 3-3s3 1.3 3 3v12h3V9c0-3-2.5-6-6-6z"/><line x1="6" y1="12" x2="12" y2="12"/><line x1="6" y1="15" x2="12" y2="15"/><line x1="6" y1="18" x2="12" y2="18"/></svg>,
+  };
+  return <span style={{display:'inline-flex',alignItems:'center',width:size,height:size,...style}}>{icons[name] || icons.music}</span>;
+};
+
+// ── HELPERS ───────────────────────────────────────────────────────
+const initials = name => name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+
+const Avatar = ({ membro, size='md' }) => {
+  const cls = `av av-${size}`;
+  const s = { background: membro.cor+'22', color: membro.cor, border: `1.5px solid ${membro.cor}44` };
+  return <div className={cls} style={s}>{initials(membro.nome)}</div>;
+};
+
+// ── Mini Player Global ────────────────────────────────────────────
+function MiniPlayerYT({ musica, onClose }) {
+  const [videoId, setVideoId] = useState(musica?.youtubeId || null);
+  const [buscando, setBuscando] = useState(!musica?.youtubeId);
+  const [erro, setErro] = useState('');
+
+  useEffect(() => {
+    if (musica?.youtubeId) {
+      setVideoId(musica.youtubeId);
+      setBuscando(false);
+      return;
+    }
+    // Busca o ID no YouTube
+    async function buscar() {
+      setBuscando(true);
+      setErro('');
+      try {
+        const q = encodeURIComponent(`${musica.nome} ${musica.artista} louvor`);
+        const res = await fetch(
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${q}&type=video&maxResults=1&key=${YOUTUBE_API_KEY}`
+        );
+        const data = await res.json();
+        const id = data.items?.[0]?.id?.videoId;
+        if (id) setVideoId(id);
+        else setErro('Vídeo não encontrado.');
+      } catch {
+        setErro('Erro ao buscar vídeo.');
+      } finally {
+        setBuscando(false);
+      }
+    }
+    buscar();
+  }, [musica?.id]);
+
+  if (!musica) return null;
+
+  return (
+    <div style={{
+      position:'fixed', bottom:60, left:0, right:0, zIndex:150,
+      background:'var(--dark2)', borderTop:'0.5px solid var(--border)',
+      boxShadow:'0 -4px 24px rgba(0,0,0,0.5)'
+    }}>
+      {/* Header */}
+      <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 14px',borderBottom:'0.5px solid var(--border2)'}}>
+        {musica.capa
+          ? <img src={musica.capa} alt="" style={{width:32,height:32,borderRadius:5,objectFit:'cover',flexShrink:0}}/>
+          : <div style={{width:32,height:32,borderRadius:5,background:'var(--dark4)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              <Icon name="music" size={14} style={{color:'var(--gold)'}}/>
+            </div>
+        }
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:13,fontWeight:600,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{musica.nome}</div>
+          <div style={{fontSize:11,color:'var(--text3)'}}>{musica.artista} · Tom: {musica.tom}</div>
+        </div>
+        <button onClick={onClose} style={{background:'none',border:'none',color:'var(--text3)',cursor:'pointer',padding:4,flexShrink:0}}>
+          <Icon name="x" size={16}/>
+        </button>
+      </div>
+
+      {/* Conteúdo */}
+      {buscando && (
+        <div style={{padding:'24px',textAlign:'center',color:'var(--text3)',fontSize:13}}>
+          Buscando vídeo...
+        </div>
+      )}
+      {erro && (
+        <div style={{padding:'16px',textAlign:'center',color:'var(--coral)',fontSize:13}}>
+          {erro}
+          <div style={{marginTop:8}}>
+            <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(musica.nome+' '+musica.artista)}`}
+              target="_blank" rel="noreferrer"
+              style={{color:'var(--gold)',fontSize:12}}>
+              Buscar no YouTube ↗
+            </a>
+          </div>
+        </div>
+      )}
+      {!buscando && !erro && videoId && (
+        <div style={{position:'relative',paddingBottom:'56.25%',height:0,overflow:'hidden'}}>
+          <iframe
+            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+            style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}}
+            allow="autoplay; encrypted-media; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+
+function PageDashboard({ membros, escalas, musicas, avisos, onPage, usuario, onPlayMusica }) {
+  // Sempre pega escalas futuras
+  const minhasEscalas  = usuario ? escalasDoUsuario(usuario.nome, escalas) : [];
+  const proximaEscala  = minhasEscalas[0] || null;
+  const minhaFuncao    = proximaEscala ? funcaoNaEscala(usuario.nome, proximaEscala) : null;
+  const proxGeral      = proximaEscalaGeral(escalas);
+  const naoLidos       = avisos.filter(a=>!a.lido).length;
+
+  // Repertório da minha próxima escala (se tiver)
+  const meuRepertorio  = proximaEscala?.repertorio || [];
+
+  // Saudação por hora do dia
+  const hora = new Date().getHours();
+  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+  const primeiroNome = usuario?.nome?.split(' ')[0] || '';
+
+  return (
+    <div>
+      {/* Saudação personalizada */}
+      <div style={{marginBottom:16}}>
+        <div style={{fontSize:18,fontWeight:600,color:'var(--text)'}}>{saudacao}, {primeiroNome}! 🎶</div>
+        <div style={{fontSize:12,color:'var(--text3)',marginTop:2}}>{usuario?.papel}</div>
+      </div>
+
+      {/* Banner escala do membro */}
+      {proximaEscala && minhaFuncao ? (
+        <div style={{
+          background:'linear-gradient(135deg, rgba(200,168,75,0.18), rgba(200,168,75,0.06))',
+          border:'0.5px solid rgba(200,168,75,0.4)', borderRadius:'var(--r-lg)',
+          padding:'14px 16px', marginBottom:16
+        }}>
+          <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:11,color:'var(--gold)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:4}}>
+                Você está escalado
+              </div>
+              <div style={{fontSize:15,fontWeight:700,color:'var(--text)',marginBottom:2}}>
+                {proximaEscala.dia} · {proximaEscala.data}
+              </div>
+              <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:6}}>
+                <span className="tag tag-gold">{minhaFuncao}</span>
+                <span className="tag tag-gray">{proximaEscala.culto}</span>
+                {proximaEscala.ceia && <span className="tag tag-gold">✦ CEIA</span>}
+              </div>
+              <div style={{fontSize:11,color:'var(--text3)',marginTop:8}}>
+                Ministro: <strong style={{color:'var(--text2)'}}>{proximaEscala.ministerio||'—'}</strong>
+              </div>
+            </div>
+            <button className="btn btn-ghost btn-sm" onClick={()=>onPage('escalas')} style={{flexShrink:0}}>
+              Ver escala
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{background:'var(--surface2)',border:'0.5px solid var(--border)',borderRadius:'var(--r)',padding:'12px 16px',marginBottom:16,fontSize:12,color:'var(--text3)'}}>
+          Sem escalas futuras cadastradas para você.
+        </div>
+      )}
+
+      {/* Repertório da minha escala */}
+      {meuRepertorio.length > 0 && (
+        <div className="card" style={{marginBottom:14}}>
+          <div className="card-title">
+            Repertório — {proximaEscala.data}
+            <span>{meuRepertorio.length} músicas</span>
+          </div>
+          {meuRepertorio.map((m,i) => (
+            <div key={m.id} className="list-item">
+              <div style={{width:18,fontSize:11,color:'var(--text4)',flexShrink:0,textAlign:'center'}}>{i+1}</div>
+              <div className="musica-cover" style={{width:28,height:28,borderRadius:5,flexShrink:0}}><Icon name="music" size={12}/></div>
+              <div className="list-item-info" style={{cursor:'pointer'}} onClick={()=>onPlayMusica&&onPlayMusica(m)}>
+                <div className="list-item-name" style={{fontSize:12}}>{m.nome}</div>
+                <div className="list-item-sub">{m.artista}</div>
+              </div>
+              <span className="tom-pill" style={{fontSize:10,padding:'2px 7px'}}>{m.tom}</span>
+              <button onClick={()=>onPlayMusica&&onPlayMusica(m)}
+                style={{width:26,height:26,borderRadius:'50%',background:'var(--gold)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0}}>
+                <Icon name="play" size={11} style={{color:'var(--dark)'}}/>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Time da escala */}
+      {proximaEscala && (
+        <div className="card" style={{marginBottom:14}}>
+          <div className="card-title">Time da semana <span>{proximaEscala.data}</span></div>
+          {[
+            {role:'Ministro(a)', val: proximaEscala.ministerio},
+            {role:'Vocal / Back', val: proximaEscala.vocal},
+            {role:'Guitarra',    val: proximaEscala.musicos?.guitarra},
+            {role:'Teclado',     val: proximaEscala.musicos?.teclado},
+            {role:'Baixo',       val: proximaEscala.musicos?.baixo},
+            {role:'Bateria',     val: proximaEscala.musicos?.bateria},
+          ].filter(r=>r.val).map((r,i)=>(
+            <div key={i} className="list-item">
+              <div style={{width:90,fontSize:11,color:'var(--text3)',flexShrink:0}}>{r.role}</div>
+              <div style={{fontSize:12,fontWeight: r.val?.toLowerCase().includes(usuario?.nome?.toLowerCase()) ? 600 : 400,
+                color: r.val?.toLowerCase().includes(usuario?.nome?.toLowerCase()) ? 'var(--gold)' : 'var(--text)'}}>
+                {r.val}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Stats rápidos */}
+      <div className="grid-2" style={{marginBottom:14}}>
+        <div className="stat-card" style={{cursor:'pointer'}} onClick={()=>onPage('musicas')}>
+          <div className="stat-label">Músicas</div>
+          <div className="stat-value">{musicas.length}</div>
+          <div className="stat-detail">no repertório</div>
+        </div>
+        <div className="stat-card" style={{cursor:'pointer',position:'relative'}} onClick={()=>onPage('avisos')}>
+          <div className="stat-label">Avisos</div>
+          <div className="stat-value" style={{color: naoLidos>0?'var(--coral)':'var(--text)'}}>{naoLidos}</div>
+          <div className="stat-detail">{naoLidos>0?'não lidos':'em dia ✓'}</div>
+        </div>
+      </div>
+
+      {/* Avisos recentes não lidos */}
+      {naoLidos > 0 && (
+        <div className="card">
+          <div className="card-title">Avisos recentes <span onClick={()=>onPage('avisos')} style={{cursor:'pointer',color:'var(--gold)'}}>ver todos</span></div>
+          {avisos.filter(a=>!a.lido).slice(0,3).map(a=>(
+            <div key={a.id} className="list-item">
+              <Icon name={a.tipo==='alerta'?'alert':'info'} size={14}
+                style={{color:a.tipo==='alerta'?'var(--gold)':'var(--blue)',flexShrink:0}}/>
+              <div className="list-item-info">
+                <div className="list-item-name" style={{fontSize:12}}>{a.titulo}</div>
+                <div className="list-item-sub">{a.data}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PageAvisos({ avisos, setAvisos, salvarAviso, excluirAviso, usuario, membros }) {
+  const [modal, setModal] = useState(false);
+  const [editando, setEditando] = useState(null);
+  const [form, setForm] = useState({ titulo:'', corpo:'', tipo:'info', destinatario:'todos' });
+  const [salvando, setSalvando] = useState(false);
+  const [toast, setToast] = useState('');
+  const showToast = msg => { setToast(msg); setTimeout(()=>setToast(''),2500); };
+
+  const isAdmin    = usuario?.acesso === 'admin';
+  const isMinistro = isAdmin || usuario?.acesso === 'ministro';
+
+  const marcarLido = id => setAvisos(a => a.map(x => x.id===id ? {...x,lido:true} : x));
+  const marcarTodos = () => setAvisos(a => a.map(x => ({...x,lido:true})));
+
+  const excluir = async (id) => {
+    await excluirAviso(id);
+    showToast('Aviso removido.');
+  };
+
+  const abrirNovo = () => {
+    setEditando(null);
+    setForm({ titulo:'', corpo:'', tipo:'info', destinatario:'todos' });
+    setModal(true);
+  };
+
+  const abrirEditar = (a) => {
+    setEditando(a);
+    setForm({ titulo:a.titulo, corpo:a.corpo, tipo:a.tipo, destinatario:a.destinatario||'todos' });
+    setModal(true);
+  };
+
+  const salvar = async () => {
+    if (!form.titulo.trim()) return;
+    setSalvando(true);
+    try {
+      await salvarAviso({ ...(editando||{}), ...form, autor: usuario?.nome });
+      showToast(editando ? 'Aviso atualizado!' : 'Aviso enviado!');
+      setModal(false);
+    } catch(e) { showToast('Erro: '+e.message); }
+    finally { setSalvando(false); }
+  };
+
+  return (
+    <div>
+      {toast && <div className="toast">{toast}</div>}
+      <div style={{display:'flex',gap:8,marginBottom:14,alignItems:'center'}}>
+        {isMinistro && (
+          <button className="btn btn-gold" onClick={abrirNovo}>
+            <Icon name="plus"/>Novo aviso
+          </button>
+        )}
+        {avisos.some(a=>!a.lido) && (
+          <button className="btn btn-ghost btn-sm" onClick={marcarTodos}>
+            <Icon name="check"/>Marcar todos lidos
+          </button>
+        )}
+      </div>
+
+      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+        {avisos.map(a => (
+          <div key={a.id} className="card" style={{
+            borderLeft:`3px solid ${a.tipo==='alerta'?'var(--gold)':'var(--blue)'}`,
+            borderRadius:'0 var(--r-lg) var(--r-lg) 0',
+            opacity:a.lido?0.55:1
+          }}>
+            <div style={{display:'flex',gap:10}}>
+              <Icon name={a.tipo==='alerta'?'alert':'info'} size={17}
+                style={{color:a.tipo==='alerta'?'var(--gold)':'var(--blue)',flexShrink:0,marginTop:2}}/>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600,color:a.tipo==='alerta'?'var(--gold)':'var(--text)'}}>{a.titulo}</div>
+                <div style={{fontSize:12,color:'var(--text2)',marginTop:3}}>{a.corpo}</div>
+                {a.destinatario && a.destinatario !== 'todos' && (
+                  <div style={{fontSize:11,color:'var(--text3)',marginTop:4}}>
+                    Para: <strong style={{color:'var(--text2)'}}>{a.destinatario}</strong>
+                  </div>
+                )}
+                <div style={{display:'flex',gap:8,marginTop:10,flexWrap:'wrap'}}>
+                  {!a.lido && (
+                    <button className="btn btn-gold btn-sm" onClick={()=>marcarLido(a.id)}>
+                      <Icon name="check"/>Lido
+                    </button>
+                  )}
+                  {isMinistro && (
+                    <button className="btn btn-ghost btn-sm" onClick={()=>abrirEditar(a)}>
+                      <Icon name="edit"/>Editar
+                    </button>
+                  )}
+                  {isAdmin && (
+                    <button className="btn btn-danger btn-sm" onClick={()=>excluir(a.id)}>
+                      <Icon name="trash"/>Excluir
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6,flexShrink:0}}>
+                <div style={{fontSize:10,color:'var(--text3)'}}>{a.data}</div>
+              </div>
+            </div>
+          </div>
+        ))}
+        {avisos.length === 0 && (
+          <div className="card" style={{textAlign:'center',padding:32,color:'var(--text3)'}}>
+            Nenhum aviso no momento.
+          </div>
+        )}
+      </div>
+
+      {modal && (
+        <div className="modal-overlay" onClick={e=>{if(e.target.classList.contains('modal-overlay'))setModal(false)}}>
+          <div className="modal">
+            <div className="modal-title">
+              {editando?'Editar aviso':'Novo aviso'}
+              <button className="btn btn-ghost btn-sm" onClick={()=>setModal(false)}><Icon name="x"/></button>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Tipo</label>
+              <div style={{display:'flex',gap:8}}>
+                {['info','alerta'].map(t=>(
+                  <button key={t} className={`btn btn-sm ${form.tipo===t?'btn-gold':'btn-ghost'}`}
+                    onClick={()=>setForm(f=>({...f,tipo:t}))}>
+                    {t==='alerta'?'⚠ Alerta':'ℹ Info'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Título</label>
+              <input className="form-input" placeholder="Ex: Ensaio sábado 19h"
+                value={form.titulo} onChange={e=>setForm(f=>({...f,titulo:e.target.value}))} autoFocus/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Mensagem</label>
+              <textarea className="form-input" rows={3} placeholder="Detalhes..."
+                value={form.corpo} onChange={e=>setForm(f=>({...f,corpo:e.target.value}))}
+                style={{resize:'vertical'}}/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Destinatário</label>
+              <select className="form-select" value={form.destinatario}
+                onChange={e=>setForm(f=>({...f,destinatario:e.target.value}))}>
+                <option value="todos">📢 Todos</option>
+                <optgroup label="Membros">
+                  {(membros||[]).map(m=><option key={m.id} value={m.nome}>{m.nome}</option>)}
+                </optgroup>
+              </select>
+            </div>
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+              <button className="btn btn-ghost" onClick={()=>setModal(false)}>Cancelar</button>
+              <button className="btn btn-gold" onClick={salvar} disabled={salvando}>
+                <Icon name="send"/>{salvando ? 'Salvando...' : editando?'Salvar':'Enviar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function PageMinistros({ membros, setMembros, salvarMembro, excluirMembro, usuario }) {
+  const [busca, setBusca] = useState('');
+  const [modal, setModal] = useState(false);
+  const [form, setForm] = useState({ nome:'', papel:'', funcoes:'' });
+  const [toast, setToast] = useState('');
+
+  const showToast = msg => { setToast(msg); setTimeout(()=>setToast(''),2500); };
+
+  const filtrados = membros.filter(m =>
+    m.nome.toLowerCase().includes(busca.toLowerCase()) ||
+    m.papel.toLowerCase().includes(busca.toLowerCase())
+  );
+
+  const cores = ['#C8A84B','#D85A30','#7F77DD','#5DCAA5','#ED93B1','#5B9BD5','#6BBF6A','#EF9F27','#D4537E','#534AB7'];
+  const [salvando, setSalvando] = useState(false);
+
+  const salvar = async () => {
+    if (!form.nome.trim()) return;
+    setSalvando(true);
+    try {
+      const novo = {
+        nome: form.nome, papel: form.papel,
+        funcoes: form.funcoes.split(',').map(f=>f.trim()).filter(Boolean),
+        cor: cores[membros.length % cores.length], tipo: 'musico',
+        pin: '1234', acesso: 'membro'
+      };
+      await salvarMembro(novo);
+      setModal(false);
+      setForm({ nome:'', papel:'', funcoes:'' });
+      showToast(`${form.nome} adicionado(a)!`);
+    } catch(e) { showToast('Erro: '+e.message); }
+    finally { setSalvando(false); }
+  };
+
+  const tipoLabel = { liderança:'Liderança', ministro:'Ministros', musico:'Músicos e Backing' };
+  const grupos = ['liderança','ministro','musico'];
+
+  return (
+    <div>
+      {toast && <div className="toast">{toast}</div>}
+      <div style={{display:'flex',gap:8,marginBottom:16}}>
+        <div className="search-wrap" style={{flex:1}}>
+          <Icon name="search"/>
+          <input className="search-input" style={{width:'100%'}} placeholder="Buscar ministro..." value={busca} onChange={e=>setBusca(e.target.value)}/>
+        </div>
+        <button className="btn btn-gold" onClick={()=>setModal(true)}>
+          <Icon name="plus"/>Novo membro
+        </button>
+      </div>
+
+      {grupos.map(tipo => {
+        const grupo = filtrados.filter(m=>m.tipo===tipo);
+        if (!grupo.length) return null;
+        return (
+          <div key={tipo} style={{marginBottom:20}}>
+            <div style={{fontSize:11,color:'var(--text3)',marginBottom:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.8px'}}>{tipoLabel[tipo]}</div>
+            <div className="grid-3">
+              {grupo.map(m => (
+                <div key={m.id} className="ministro-card">
+                  <Avatar membro={m} size="lg"/>
+                  <div className="m-name">{m.nome}</div>
+                  <div className="m-role">{m.papel}</div>
+                  <div className="m-tags">
+                    {m.funcoes.map((f,i) => <span key={i} className="tag tag-gray">{f}</span>)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {modal && (
+        <div className="modal-overlay" onClick={e=>{if(e.target.classList.contains('modal-overlay'))setModal(false)}}>
+          <div className="modal">
+            <div className="modal-title">
+              Novo membro
+              <button className="btn btn-ghost btn-sm" onClick={()=>setModal(false)}><Icon name="x"/></button>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Nome completo</label>
+              <input className="form-input" placeholder="Ex: Maria dos Santos" value={form.nome} onChange={e=>setForm(f=>({...f,nome:e.target.value}))}/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Função principal</label>
+              <input className="form-input" placeholder="Ex: Ministra de Louvor" value={form.papel} onChange={e=>setForm(f=>({...f,papel:e.target.value}))}/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Instrumentos / funções (separados por vírgula)</label>
+              <input className="form-input" placeholder="Ex: Guitarra, Violão" value={form.funcoes} onChange={e=>setForm(f=>({...f,funcoes:e.target.value}))}/>
+            </div>
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:4}}>
+              <button className="btn btn-ghost" onClick={()=>setModal(false)}>Cancelar</button>
+              <button className="btn btn-gold" onClick={salvar}><Icon name="check"/>Salvar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PageEscalas({ escalas, setEscalas, salvarEscala, excluirEscala, atualizarRepertorio, membros, musicas, avisos, setAvisos, salvarAviso, usuario }) {
+  const isAdmin    = usuario?.acesso === 'admin';
+  const isMinistro = isAdmin || usuario?.acesso === 'ministro';
+
+  const [sel, setSel] = useState(escalas[0]);
+  const [mesCal, setMesCal] = useState(6);
+  const [toast, setToast] = useState('');
+  const [abaDir, setAbaDir] = useState('time');
+  const [modalMusica, setModalMusica] = useState(false);
+  const [musicaBusca, setMusicaBusca] = useState('');
+  const [editTom, setEditTom] = useState(null);
+  const [modalEscala, setModalEscala] = useState(false);
+  const [editandoEscala, setEditandoEscala] = useState(null);
+  const [salvandoEscala, setSalvandoEscala] = useState(false);
+  const NOMES = membros.map(m=>m.nome);
+  const formEscalaBase = { data:'', dia:'Domingo', culto:'2 cultos', ceia:false, ministerio:'', vocal:'', musicos:{ baixo:'', guitarra:'', teclado:'', bateria:'' }};
+  const [formEscala, setFormEscala] = useState(formEscalaBase);
+  const showToast = msg => { setToast(msg); setTimeout(()=>setToast(''),3000); };
+
+  const abrirNovaEscala = () => {
+    setEditandoEscala(null);
+    setFormEscala(formEscalaBase);
+    setModalEscala(true);
+  };
+
+  const abrirEditarEscala = (e) => {
+    setEditandoEscala(e);
+    setFormEscala({ data:e.data, dia:e.dia, culto:e.culto, ceia:e.ceia||false, ministerio:e.ministerio||'', vocal:e.vocal||'', musicos:{...e.musicos} });
+    setModalEscala(true);
+  };
+
+  const salvarEscalaLocal = async () => {
+    if (!formEscala.data.trim()) return;
+    setSalvandoEscala(true);
+    try {
+      const base = editandoEscala ? {...editandoEscala,...formEscala} : {...formEscala, repertorio:[]};
+      const salva = await salvarEscala(base);
+      setSel(salva || base);
+      showToast(editandoEscala ? 'Escala atualizada!' : 'Escala criada!');
+      setModalEscala(false);
+    } catch(e) { showToast('Erro: '+e.message); }
+    finally { setSalvandoEscala(false); }
+  };
+
+  const excluirEscalaLocal = async (id) => {
+    await excluirEscala(id);
+    if (sel?.id===id) setSel(escalas.find(e=>e.id!==id)||null);
+    showToast('Escala excluída.');
+  };
+
+  const dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const calDays = mesCal === 6
+    ? [...[29,30].map(d=>({d,other:true})), ...Array.from({length:30},(_,i)=>({d:i+1,other:false}))]
+    : [...[29,30].map(d=>({d,other:true})), ...Array.from({length:31},(_,i)=>({d:i+1,other:false}))];
+  const hasEscala = d => escalas.some(e=>{const p=e.data.split('/');return parseInt(p[0])===d&&parseInt(p[1])===mesCal;});
+  const isCeia = d => escalas.some(e=>{const p=e.data.split('/');return parseInt(p[0])===d&&parseInt(p[1])===mesCal&&e.ceia;});
+
+  // Seleciona escala e sincroniza estado local
+  const selecionarEscala = e => { setSel(e); setAbaDir('time'); };
+
+  // Retorna a escala atualizada do state (sel pode estar desatualizado)
+  const selAtual = escalas.find(e=>e.id===sel?.id) || sel;
+
+  // Monta lista de nomes da banda da escala para notificação
+  const nomesEquipe = e => {
+    const partes = [e.ministerio, e.vocal, e.musicos?.baixo, e.musicos?.guitarra, e.musicos?.teclado, e.musicos?.bateria];
+    return partes.filter(Boolean).join(', ');
+  };
+
+  const gerarNotificacao = async (tipo, payload, escala) => {
+    let titulo, corpo;
+    if (tipo === 'tom') {
+      titulo = `Tom alterado — ${escala.data}`;
+      corpo = `"${payload.musica}" teve o tom alterado: ${payload.de} → ${payload.para}. Culto: ${escala.culto}.`;
+    } else if (tipo === 'musica_add') {
+      titulo = `Música adicionada — ${escala.data}`;
+      corpo = `"${payload.musica}" (tom: ${payload.tom}) foi adicionada ao repertório do ${escala.dia}.`;
+    } else if (tipo === 'musica_remove') {
+      titulo = `Música removida — ${escala.data}`;
+      corpo = `"${payload.musica}" foi removida do repertório do ${escala.dia}.`;
+    }
+    await salvarAviso({ titulo, corpo, tipo:'alerta', destinatario:'todos', autor: usuario?.nome||'' });
+    showToast('Notificação enviada para a equipe!');
+  };
+
+  const adicionarMusica = async musica => {
+    const novaEntrada = { id: Date.now(), musicaId: musica.id, nome: musica.nome, artista: musica.artista, tom: musica.tom };
+    const novoRep = [...(selAtual.repertorio||[]), novaEntrada];
+    await atualizarRepertorio(selAtual.id, novoRep);
+    setModalMusica(false);
+    setMusicaBusca('');
+    gerarNotificacao('musica_add', { musica: musica.nome, tom: musica.tom }, selAtual);
+  };
+
+  const removerMusica = async entrada => {
+    const novoRep = (selAtual.repertorio||[]).filter(r=>r.id!==entrada.id);
+    await atualizarRepertorio(selAtual.id, novoRep);
+    gerarNotificacao('musica_remove', { musica: entrada.nome }, selAtual);
+  };
+
+  const alterarTom = async (entrada, novoTom) => {
+    const tomAnterior = entrada.tom;
+    const novoRep = (selAtual.repertorio||[]).map(r=>r.id===entrada.id?{...r,tom:novoTom}:r);
+    await atualizarRepertorio(selAtual.id, novoRep);
+    setEditTom(null);
+    if (tomAnterior !== novoTom) gerarNotificacao('tom', { musica: entrada.nome, de: tomAnterior, para: novoTom }, selAtual);
+  };
+
+  const musicasBusca = musicas.filter(m =>
+    m.nome.toLowerCase().includes(musicaBusca.toLowerCase()) ||
+    m.artista.toLowerCase().includes(musicaBusca.toLowerCase())
+  );
+
+  const repertorioAtual = escalas.find(e=>e.id===sel?.id)?.repertorio || [];
+
+  return (
+    <div>
+      {toast && <div className="toast" style={{background:'var(--dark2)',borderColor:'var(--gold)'}}>{toast}</div>}
+
+      <div className="escalas-grid" style={{display:'grid',gridTemplateColumns:'220px 1fr',gap:14,alignItems:'start'}}>
+
+        {/* COLUNA ESQUERDA — calendário + lista */}
+        <div>
+          <div className="card" style={{marginBottom:10}}>
+            <div className="card-title">
+              <div style={{display:'flex',gap:4}}>
+                <button className={`btn btn-sm ${mesCal===6?'btn-gold':'btn-ghost'}`} onClick={()=>setMesCal(6)}>Jun</button>
+                <button className={`btn btn-sm ${mesCal===7?'btn-gold':'btn-ghost'}`} onClick={()=>setMesCal(7)}>Jul</button>
+              </div>
+              <span>2025</span>
+            </div>
+            <div className="cal-grid">
+              {dias.map(d=><div key={d} className="cal-th">{d}</div>)}
+              {calDays.map((day,i)=>(
+                <div key={i}
+                  className={`cal-day ${day.other?'other':''} ${hasEscala(day.d)&&!day.other?'has-ev':''}`}
+                  style={isCeia(day.d)&&!day.other?{color:'var(--gold)',fontWeight:700}:{}}
+                  onClick={()=>{
+                    if(day.other) return;
+                    const e=escalas.find(e=>{const p=e.data.split('/');return parseInt(p[0])===day.d&&parseInt(p[1])===mesCal;});
+                    if(e) selecionarEscala(e);
+                  }}
+                >{day.d}</div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{fontSize:10,color:'var(--text4)',marginBottom:8,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.8px'}}>Escalas</div>
+          <div style={{display:'flex',flexDirection:'column',gap:2}}>
+            {escalas.map(e=>(
+              <div key={e.id}
+                style={{padding:'7px 10px',borderRadius:8,cursor:'pointer',background:sel?.id===e.id?'var(--gold-bg)':'transparent',border:`0.5px solid ${sel?.id===e.id?'var(--border)':'transparent'}`,transition:'all 0.1s',display:'flex',alignItems:'center',gap:4}}
+                onClick={()=>selecionarEscala(e)}
+                onMouseEnter={ev=>{if(sel?.id!==e.id)ev.currentTarget.style.background='var(--border2)'}}
+                onMouseLeave={ev=>{if(sel?.id!==e.id)ev.currentTarget.style.background='transparent'}}
+              >
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:11,fontWeight:600,color:sel?.id===e.id?'var(--gold)':'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{e.data} {e.ceia?'✦':''}</div>
+                  <div style={{fontSize:10,color:'var(--text3)'}}>{e.ministerio||e.dia}</div>
+                </div>
+                {isMinistro && sel?.id===e.id && (
+                  <button style={{background:'none',border:'none',color:'var(--text3)',padding:2,cursor:'pointer',flexShrink:0}}
+                    onClick={ev=>{ev.stopPropagation();abrirEditarEscala(e);}}>
+                    <Icon name="edit" size={12}/>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          {isMinistro && (
+            <button className="btn btn-gold" style={{width:'100%',justifyContent:'center',marginTop:10}} onClick={abrirNovaEscala}>
+              <Icon name="plus"/>Nova escala
+            </button>
+          )}
+        </div>
+
+        {/* COLUNA DIREITA — detalhe */}
+        {sel ? (
+          <div>
+            {/* Header da escala */}
+            <div style={{background:'var(--surface2)',border:'0.5px solid var(--border)',borderRadius:'var(--r-lg) var(--r-lg) 0 0',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div>
+                <div style={{fontSize:14,fontWeight:700,color:'var(--text)'}}>{sel.dia} · {sel.data} {sel.ceia?<span className="tag tag-gold" style={{marginLeft:6}}>CEIA</span>:null}</div>
+                <div style={{fontSize:11,color:'var(--text3)',marginTop:1}}>{sel.culto}</div>
+              </div>
+              <div style={{display:'flex',gap:6}}>
+                <button className="btn btn-ghost btn-sm" onClick={()=>{ showToast('Repertório e escala enviados para a equipe!'); }}>
+                  <Icon name="send" size={13}/>Notificar
+                </button>
+                {isMinistro && (
+                  <button className="btn btn-ghost btn-sm" onClick={()=>abrirEditarEscala(sel)}>
+                    <Icon name="edit" size={13}/>Editar
+                  </button>
+                )}
+                {isAdmin && (
+                  <button className="btn btn-danger btn-sm" onClick={()=>excluirEscalaLocal(sel.id)}>
+                    <Icon name="trash" size={13}/>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Abas */}
+            <div style={{display:'flex',background:'var(--surface)',borderLeft:'0.5px solid var(--border)',borderRight:'0.5px solid var(--border)',borderBottom:'0.5px solid var(--border2)'}}>
+              {[{id:'time',label:'Time'},{id:'repertorio',label:`Repertório ${repertorioAtual.length>0?`(${repertorioAtual.length})`:''}` }].map(aba=>(
+                <button key={aba.id}
+                  style={{padding:'10px 18px',fontSize:13,fontWeight:aba.id===abaDir?600:400,color:aba.id===abaDir?'var(--gold)':'var(--text3)',background:'transparent',border:'none',borderBottom:aba.id===abaDir?'2px solid var(--gold)':'2px solid transparent',cursor:'pointer',transition:'all 0.12s'}}
+                  onClick={()=>setAbaDir(aba.id)}
+                >{aba.label}</button>
+              ))}
+            </div>
+
+            {/* Conteúdo aba Time */}
+            {abaDir==='time' && (
+              <div style={{background:'var(--surface)',border:'0.5px solid var(--border)',borderTop:'none',borderRadius:'0 0 var(--r-lg) var(--r-lg)',padding:'14px 16px'}}>
+                {[
+                  {role:'Ministro(a)', val:sel.ministerio||'—'},
+                  {role:'Vocal / Back', val:sel.vocal||'—'},
+                  {role:'Baixo', val:sel.musicos.baixo||'—'},
+                  {role:'Guitarra', val:sel.musicos.guitarra||'—'},
+                  {role:'Teclado', val:sel.musicos.teclado||'—'},
+                  {role:'Bateria', val:sel.musicos.bateria||'—'},
+                ].map((r,i)=>(
+                  <div key={i} className="escala-row">
+                    <div className="escala-role-label">{r.role}</div>
+                    <div className="escala-names">{r.val}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Conteúdo aba Repertório */}
+            {abaDir==='repertorio' && (
+              <div style={{background:'var(--surface)',border:'0.5px solid var(--border)',borderTop:'none',borderRadius:'0 0 var(--r-lg) var(--r-lg)',padding:'14px 16px'}}>
+                {repertorioAtual.length === 0 ? (
+                  <div style={{textAlign:'center',padding:'24px 0',color:'var(--text3)',fontSize:13}}>
+                    Nenhuma música ainda.<br/>
+                    <span style={{fontSize:12}}>Adicione músicas do repertório abaixo.</span>
+                  </div>
+                ) : (
+                  repertorioAtual.map((entrada, i) => (
+                    <div key={entrada.id} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'0.5px solid var(--border2)'}}>
+                      <div style={{width:20,textAlign:'center',fontSize:12,color:'var(--text4)',flexShrink:0}}>{i+1}</div>
+                      <div className="musica-cover" style={{width:30,height:30,borderRadius:6,flexShrink:0}}><Icon name="music" size={13}/></div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13,fontWeight:500,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{entrada.nome}</div>
+                        <div style={{fontSize:11,color:'var(--text3)'}}>{entrada.artista}</div>
+                      </div>
+
+                      {/* Tom — clicável para editar */}
+                      {editTom?.id === entrada.id ? (
+                        <div style={{display:'flex',gap:4,flexWrap:'wrap',maxWidth:240,alignItems:'center'}}>
+                          {TONS.map(t=>(
+                            <button key={t}
+                              className={`tom-key ${entrada.tom===t?'active':''}`}
+                              style={{width:30,height:28,fontSize:10,borderRadius:6}}
+                              onClick={()=>alterarTom(entrada,t)}
+                            >{t}</button>
+                          ))}
+                          <button className="btn btn-ghost btn-sm" style={{marginLeft:2}} onClick={()=>setEditTom(null)}>
+                            <Icon name="x" size={12}/>
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          className="tom-pill"
+                          style={{cursor:'pointer',border:'0.5px solid transparent',transition:'all 0.12s'}}
+                          title="Clique para alterar o tom"
+                          onClick={()=>setEditTom({id:entrada.id})}
+                          onMouseEnter={ev=>{ev.currentTarget.style.borderColor='var(--gold)';ev.currentTarget.style.opacity='0.8';}}
+                          onMouseLeave={ev=>{ev.currentTarget.style.borderColor='transparent';ev.currentTarget.style.opacity='1';}}
+                        >{entrada.tom} ✎</button>
+                      )}
+
+                      <button className="stem-mute" style={{flexShrink:0}} title="Remover do repertório" onClick={()=>removerMusica(entrada)}>
+                        <Icon name="trash" size={13} style={{color:'var(--coral)'}}/>
+                      </button>
+                    </div>
+                  ))
+                )}
+
+                <button className="btn btn-gold" style={{width:'100%',justifyContent:'center',marginTop:12}} onClick={()=>setModalMusica(true)}>
+                  <Icon name="plus"/>Adicionar música
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="card" style={{textAlign:'center',padding:'40px',color:'var(--text3)'}}>
+            <Icon name="calendar" size={32} style={{color:'var(--text4)',marginBottom:8}}/>
+            <div>Selecione uma escala</div>
+          </div>
+        )}
+      </div>
+
+      {/* Modal — adicionar música */}
+      {modalMusica && (
+        <div className="modal-overlay" onClick={e=>{if(e.target.classList.contains('modal-overlay')){setModalMusica(false);setMusicaBusca('');}}}>
+          <div className="modal">
+            <div className="modal-title">
+              Adicionar ao repertório
+              <button className="btn btn-ghost btn-sm" onClick={()=>{setModalMusica(false);setMusicaBusca('');}}><Icon name="x"/></button>
+            </div>
+            <div style={{fontSize:12,color:'var(--text3)',marginBottom:12}}>
+              Culto: <strong style={{color:'var(--text)'}}>{sel?.dia} · {sel?.data}</strong>
+            </div>
+            <div className="search-wrap" style={{marginBottom:12}}>
+              <Icon name="search"/>
+              <input className="search-input" style={{width:'100%'}} placeholder="Buscar música..." value={musicaBusca} onChange={e=>setMusicaBusca(e.target.value)} autoFocus/>
+            </div>
+            <div style={{maxHeight:320,overflowY:'auto',display:'flex',flexDirection:'column',gap:4}}>
+              {musicasBusca.map(m => {
+                const jaAdicionada = repertorioAtual.some(r=>r.musicaId===m.id);
+                return (
+                  <div key={m.id}
+                    style={{display:'flex',alignItems:'center',gap:10,padding:'9px 10px',borderRadius:8,cursor:jaAdicionada?'default':'pointer',background:'var(--surface)',border:'0.5px solid var(--border)',opacity:jaAdicionada?0.45:1,transition:'border-color 0.1s'}}
+                    onMouseEnter={ev=>{if(!jaAdicionada)ev.currentTarget.style.borderColor='var(--gold)';}}
+                    onMouseLeave={ev=>{ev.currentTarget.style.borderColor='var(--border)';}}
+                    onClick={()=>{ if(!jaAdicionada) adicionarMusica(m); }}
+                  >
+                    <div className="musica-cover" style={{width:32,height:32,borderRadius:6,flexShrink:0}}><Icon name="music" size={13}/></div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:500,color:'var(--text)'}}>{m.nome}</div>
+                      <div style={{fontSize:11,color:'var(--text3)'}}>{m.artista}</div>
+                    </div>
+                    <span className="tom-pill">{m.tom}</span>
+                    {jaAdicionada
+                      ? <span className="tag tag-teal" style={{fontSize:10}}>✓ adicionada</span>
+                      : <button className="btn btn-gold btn-sm"><Icon name="plus" size={12}/></button>
+                    }
+                  </div>
+                );
+              })}
+              {musicasBusca.length===0 && <div style={{textAlign:'center',padding:'20px',color:'var(--text3)',fontSize:13}}>Nenhuma música encontrada</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal criar/editar escala */}
+      {modalEscala && (
+        <div className="modal-overlay" onClick={e=>{if(e.target.classList.contains('modal-overlay'))setModalEscala(false)}}>
+          <div className="modal" style={{maxWidth:520}}>
+            <div className="modal-title">
+              {editandoEscala?'Editar escala':'Nova escala'}
+              <button className="btn btn-ghost btn-sm" onClick={()=>setModalEscala(false)}><Icon name="x"/></button>
+            </div>
+            <div className="grid-2">
+              <div className="form-group">
+                <label className="form-label">Data (DD/MM/AAAA)</label>
+                <input className="form-input" placeholder="Ex: 26/07/2025"
+                  value={formEscala.data} onChange={e=>setFormEscala(f=>({...f,data:e.target.value}))}/>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Dia da semana</label>
+                <select className="form-select" value={formEscala.dia} onChange={e=>setFormEscala(f=>({...f,dia:e.target.value}))}>
+                  {['Domingo','Quarta-feira','Sábado','Sexta-feira','Quinta-feira'].map(d=><option key={d}>{d}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="grid-2">
+              <div className="form-group">
+                <label className="form-label">Tipo de culto</label>
+                <input className="form-input" placeholder="Ex: 2 cultos"
+                  value={formEscala.culto} onChange={e=>setFormEscala(f=>({...f,culto:e.target.value}))}/>
+              </div>
+              <div className="form-group">
+                <label className="form-label">CEIA?</label>
+                <div style={{display:'flex',gap:8,marginTop:6}}>
+                  {[{v:false,l:'Não'},{v:true,l:'Sim ✦'}].map(op=>(
+                    <button key={String(op.v)} className={`btn btn-sm ${formEscala.ceia===op.v?'btn-gold':'btn-ghost'}`}
+                      onClick={()=>setFormEscala(f=>({...f,ceia:op.v}))}>{op.l}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Ministro(a)</label>
+              <select className="form-select" value={formEscala.ministerio} onChange={e=>setFormEscala(f=>({...f,ministerio:e.target.value}))}>
+                <option value="">— Selecionar —</option>
+                {NOMES.map(n=><option key={n}>{n}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Vocal / Back (separe por " - ")</label>
+              <input className="form-input" placeholder="Ex: Fran - Hilma - Lucimara"
+                value={formEscala.vocal} onChange={e=>setFormEscala(f=>({...f,vocal:e.target.value}))}/>
+            </div>
+            <div style={{fontSize:11,color:'var(--text3)',marginBottom:8,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.8px'}}>Músicos</div>
+            <div className="grid-2">
+              {['baixo','guitarra','teclado','bateria'].map(inst=>(
+                <div key={inst} className="form-group">
+                  <label className="form-label" style={{textTransform:'capitalize'}}>{inst}</label>
+                  <select className="form-select" value={formEscala.musicos[inst]||''}
+                    onChange={e=>setFormEscala(f=>({...f,musicos:{...f.musicos,[inst]:e.target.value}}))}>
+                    <option value="">— Selecionar —</option>
+                    {NOMES.map(n=><option key={n}>{n}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:4}}>
+              <button className="btn btn-ghost" onClick={()=>setModalEscala(false)}>Cancelar</button>
+              <button className="btn btn-gold" onClick={salvarEscalaLocal} disabled={salvandoEscala}>
+                <Icon name="check"/>{salvandoEscala?'Salvando...':(editandoEscala?'Salvar':'Criar escala')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PageMusicas({ musicas, setMusicas, salvarMusica, excluirMusica, onPlay, onPlayMusica, usuario }) {
+  const isAdmin    = usuario?.acesso === 'admin';
+  const isMinistro = isAdmin || usuario?.acesso === 'ministro';
+
+  const [busca, setBusca]       = useState('');
+  const [modal, setModal]       = useState(false);
+  const [aba, setAba]           = useState('youtube'); // 'youtube' | 'manual'
+  const [ytBusca, setYtBusca]   = useState('');
+  const [ytResultados, setYtResultados] = useState([]);
+  const [ytCarregando, setYtCarregando] = useState(false);
+  const [ytErro, setYtErro]     = useState('');
+  const [ytSel, setYtSel]       = useState(null);
+  const [editando, setEditando] = useState(null);
+  const [form, setForm]         = useState({ nome:'', artista:'', tom:'Ré', bpm:'', youtubeId:'', capa:'' });
+  const [tomSel, setTomSel]     = useState(null);
+  const [toast, setToast]       = useState('');
+  const ytTimer                 = useRef(null);
+  const showToast = msg => { setToast(msg); setTimeout(()=>setToast(''),2500); };
+
+  const filtradas = musicas.filter(m =>
+    m.nome.toLowerCase().includes(busca.toLowerCase()) ||
+    m.artista.toLowerCase().includes(busca.toLowerCase())
+  );
+
+  // ── Busca YouTube direto com API Key ─────────────────────────
+  const buscarYouTube = async (q) => {
+    if (!q.trim()) { setYtResultados([]); return; }
+    setYtCarregando(true);
+    setYtErro('');
+    try {
+      // 1. Busca vídeos
+      const searchRes = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q + ' louvor gospel')}&type=video&maxResults=8&key=${YOUTUBE_API_KEY}&relevanceLanguage=pt`
+      );
+      const searchData = await searchRes.json();
+      if (!searchRes.ok) throw new Error(searchData.error?.message ?? 'Erro na busca');
+
+      const videoIds = searchData.items.map(i => i.id.videoId).join(',');
+
+      // 2. Busca durações
+      const detailRes = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoIds}&key=${YOUTUBE_API_KEY}`
+      );
+      const detailData = await detailRes.json();
+      const duracoes = {};
+      for (const item of detailData.items ?? []) {
+        const iso = item.contentDetails.duration;
+        const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+        if (m) {
+          const h = parseInt(m[1]||'0'), min = parseInt(m[2]||'0'), s = parseInt(m[3]||'0');
+          duracoes[item.id] = `${h*60+min}:${s.toString().padStart(2,'0')}`;
+        }
+      }
+
+      const items = searchData.items.map(item => ({
+        id:      item.id.videoId,
+        titulo:  item.snippet.title,
+        canal:   item.snippet.channelTitle,
+        thumb:   item.snippet.thumbnails.medium?.url ?? item.snippet.thumbnails.default?.url,
+        duracao: duracoes[item.id.videoId] ?? '?:??',
+      }));
+
+      setYtResultados(items);
+    } catch(e) {
+      setYtErro(`Erro: ${e.message}`);
+      setYtResultados([]);
+    } finally {
+      setYtCarregando(false);
+    }
+  };
+
+  // Debounce da busca
+  const onYtBusca = (v) => {
+    setYtBusca(v);
+    setYtSel(null);
+    clearTimeout(ytTimer.current);
+    ytTimer.current = setTimeout(() => buscarYouTube(v), 600);
+  };
+
+  // Seleciona resultado do YouTube
+  const selecionarYt = (item) => {
+    setYtSel(item);
+    // Tenta extrair nome e artista do título
+    const partes = item.titulo.split(' - ');
+    const nome   = partes[0]?.trim() || item.titulo;
+    const artista = partes[1]?.trim() || item.canal;
+    setForm(f => ({ ...f, nome, artista, youtubeId: item.id, capa: item.thumb }));
+  };
+
+  const abrirNovo = () => {
+    setEditando(null);
+    setForm({ nome:'', artista:'', tom:'Ré', bpm:'', youtubeId:'', capa:'' });
+    setYtBusca(''); setYtResultados([]); setYtSel(null); setYtErro('');
+    setAba('youtube');
+    setModal(true);
+  };
+
+  const abrirEditar = (m) => {
+    setEditando(m);
+    setForm({ nome:m.nome, artista:m.artista, tom:m.tom, bpm:m.bpm||'', youtubeId:m.youtubeId||'', capa:m.capa||'' });
+    setAba('manual');
+    setModal(true);
+  };
+
+  const [salvando, setSalvando] = useState(false);
+
+  const salvar = async () => {
+    if (!form.nome.trim()) return;
+    setSalvando(true);
+    try {
+      const musica = { ...(editando||{}), ...form, bpm:parseInt(form.bpm)||0 };
+      await salvarMusica(musica);
+      showToast(editando ? 'Música atualizada!' : `"${form.nome}" adicionada!`);
+      setModal(false);
+    } catch(e) { showToast('Erro: '+e.message); }
+    finally { setSalvando(false); }
+  };
+
+  const excluir = async (id) => {
+    await excluirMusica(id);
+    showToast('Música removida.');
+  };
+
+  return (
+    <div>
+      {toast && <div className="toast">{toast}</div>}
+
+      <div style={{display:'flex',gap:8,marginBottom:16}}>
+        <div className="search-wrap" style={{flex:1}}>
+          <Icon name="search"/>
+          <input className="search-input" style={{width:'100%'}} placeholder="Buscar no repertório..."
+            value={busca} onChange={e=>setBusca(e.target.value)}/>
+        </div>
+        {isMinistro && (
+          <button className="btn btn-gold" onClick={abrirNovo}>
+            <Icon name="plus"/>Adicionar
+          </button>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="card-title">Repertório <span>{filtradas.length} músicas</span></div>
+        {filtradas.map((m,i) => (
+          <div key={m.id} className="musica-row">
+            <div className="musica-num">{i+1}</div>
+            {m.capa
+              ? <img src={m.capa} alt="" style={{width:36,height:36,borderRadius:6,objectFit:'cover',flexShrink:0}}/>
+              : <div className="musica-cover"><Icon name="music"/></div>
+            }
+            <div className="musica-info" style={{cursor:'pointer'}} onClick={()=>onPlayMusica(m)}>
+              <div className="musica-name">{m.nome}</div>
+              <div className="musica-artist">{m.artista}{m.bpm ? ` · ${m.bpm} bpm` : ''}</div>
+            </div>
+            <span className="tom-pill">{m.tom}</span>
+            {/* Botão play */}
+            <button
+              onClick={()=>onPlayMusica(m)}
+              style={{width:30,height:30,borderRadius:'50%',background:'var(--gold)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0}}
+              title="Ouvir"
+            >
+              <Icon name="play" size={12} style={{color:'var(--dark)'}}/>
+            </button>
+            {isMinistro && (
+              <button className="stem-mute" title="Editar" onClick={()=>abrirEditar(m)}>
+                <Icon name="edit" size={12} style={{color:'var(--text3)'}}/>
+              </button>
+            )}
+            {isAdmin && (
+              <button className="stem-mute" title="Remover" onClick={()=>excluir(m.id)}>
+                <Icon name="trash" size={12} style={{color:'var(--coral)'}}/>
+              </button>
+            )}
+          </div>
+        ))}
+        {filtradas.length===0 && (
+          <div style={{textAlign:'center',padding:24,color:'var(--text3)',fontSize:13}}>
+            Nenhuma música encontrada.
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{marginTop:14}}>
+        <div className="card-title">Seletor de tom rápido</div>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+          {TONS.map(t=>(
+            <button key={t} className={`tom-key ${tomSel===t?'active':''}`}
+              onClick={()=>setTomSel(t===tomSel?null:t)}>{t}</button>
+          ))}
+        </div>
+        {tomSel && (
+          <div style={{marginTop:12,fontSize:12,color:'var(--text2)'}}>
+            Tom selecionado: <strong style={{color:'var(--gold)'}}>{tomSel}</strong> — compartilhe com o time.
+          </div>
+        )}
+      </div>
+
+      {/* ── Modal adicionar / editar ── */}
+      {modal && (
+        <div className="modal-overlay" onClick={e=>{if(e.target.classList.contains('modal-overlay'))setModal(false)}}>
+          <div className="modal" style={{maxWidth:560}}>
+            <div className="modal-title">
+              {editando?'Editar música':'Adicionar música'}
+              <button className="btn btn-ghost btn-sm" onClick={()=>setModal(false)}><Icon name="x"/></button>
+            </div>
+
+            {/* Abas */}
+            {!editando && (
+              <div style={{display:'flex',borderBottom:'0.5px solid var(--border2)',marginBottom:16}}>
+                {[{id:'youtube',label:'🔴 Buscar no YouTube'},{id:'manual',label:'✏️ Manual'}].map(a=>(
+                  <button key={a.id}
+                    style={{padding:'8px 16px',fontSize:13,fontWeight:aba===a.id?600:400,color:aba===a.id?'var(--gold)':'var(--text3)',background:'transparent',border:'none',borderBottom:aba===a.id?'2px solid var(--gold)':'2px solid transparent',cursor:'pointer'}}
+                    onClick={()=>setAba(a.id)}
+                  >{a.label}</button>
+                ))}
+              </div>
+            )}
+
+            {/* ABA YOUTUBE */}
+            {aba==='youtube' && !editando && (
+              <div>
+                <div className="search-wrap" style={{marginBottom:12}}>
+                  <Icon name="search"/>
+                  <input className="search-input" style={{width:'100%'}}
+                    placeholder="Ex: Oceanos Hillsong, Lugar Secreto..."
+                    value={ytBusca} onChange={e=>onYtBusca(e.target.value)} autoFocus/>
+                </div>
+
+                {ytCarregando && (
+                  <div style={{textAlign:'center',padding:20,color:'var(--text3)',fontSize:13}}>
+                    Buscando...
+                  </div>
+                )}
+
+                {ytErro && (
+                  <div style={{fontSize:11,color:'var(--coral)',marginBottom:8,padding:'8px 10px',background:'var(--coral-bg)',borderRadius:6}}>
+                    {ytErro}
+                  </div>
+                )}
+
+                {/* Resultados */}
+                <div style={{maxHeight:280,overflowY:'auto',display:'flex',flexDirection:'column',gap:6}}>
+                  {ytResultados.map(item=>(
+                    <div key={item.id}
+                      onClick={()=>selecionarYt(item)}
+                      style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',borderRadius:8,cursor:'pointer',border:`1.5px solid ${ytSel?.id===item.id?'var(--gold)':'var(--border)'}`,background:ytSel?.id===item.id?'var(--gold-bg)':'var(--surface2)',transition:'all 0.1s'}}
+                    >
+                      <img src={item.thumb} alt="" style={{width:64,height:36,borderRadius:4,objectFit:'cover',flexShrink:0}}/>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:12,fontWeight:500,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{item.titulo}</div>
+                        <div style={{fontSize:11,color:'var(--text3)'}}>{item.canal} · {item.duracao}</div>
+                      </div>
+                      {ytSel?.id===item.id && <span className="tag tag-gold" style={{flexShrink:0}}>✓</span>}
+                    </div>
+                  ))}
+                  {!ytCarregando && ytBusca && ytResultados.length===0 && (
+                    <div style={{textAlign:'center',padding:20,color:'var(--text3)',fontSize:13}}>
+                      Nenhum resultado. Tente outro termo.
+                    </div>
+                  )}
+                  {!ytBusca && (
+                    <div style={{textAlign:'center',padding:20,color:'var(--text3)',fontSize:12}}>
+                      Digite o nome da música para buscar no YouTube
+                    </div>
+                  )}
+                </div>
+
+                {/* Preview e form após seleção */}
+                {ytSel && (
+                  <div style={{marginTop:14,paddingTop:14,borderTop:'0.5px solid var(--border2)'}}>
+                    <div style={{fontSize:11,color:'var(--text3)',marginBottom:10}}>Ajuste os detalhes antes de salvar:</div>
+                    <div className="grid-2" style={{marginBottom:10}}>
+                      <div className="form-group">
+                        <label className="form-label">Nome da música</label>
+                        <input className="form-input" value={form.nome} onChange={e=>setForm(f=>({...f,nome:e.target.value}))}/>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Artista</label>
+                        <input className="form-input" value={form.artista} onChange={e=>setForm(f=>({...f,artista:e.target.value}))}/>
+                      </div>
+                    </div>
+                    <div className="grid-2">
+                      <div className="form-group">
+                        <label className="form-label">Tom</label>
+                        <select className="form-select" value={form.tom} onChange={e=>setForm(f=>({...f,tom:e.target.value}))}>
+                          {TONS.map(t=><option key={t}>{t}</option>)}
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">BPM</label>
+                        <input className="form-input" type="number" placeholder="opcional" value={form.bpm} onChange={e=>setForm(f=>({...f,bpm:e.target.value}))}/>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ABA MANUAL */}
+            {(aba==='manual' || editando) && (
+              <div>
+                <div className="form-group">
+                  <label className="form-label">Nome da música</label>
+                  <input className="form-input" placeholder="Ex: Oceanos"
+                    value={form.nome} onChange={e=>setForm(f=>({...f,nome:e.target.value}))} autoFocus={!editando}/>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Artista / Ministério</label>
+                  <input className="form-input" placeholder="Ex: Hillsong"
+                    value={form.artista} onChange={e=>setForm(f=>({...f,artista:e.target.value}))}/>
+                </div>
+                <div className="grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Tom</label>
+                    <select className="form-select" value={form.tom} onChange={e=>setForm(f=>({...f,tom:e.target.value}))}>
+                      {TONS.map(t=><option key={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">BPM</label>
+                    <input className="form-input" type="number" placeholder="opcional"
+                      value={form.bpm} onChange={e=>setForm(f=>({...f,bpm:e.target.value}))}/>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">ID do YouTube (opcional)</label>
+                  <input className="form-input" placeholder="Ex: aHjpOzsQ9YI"
+                    value={form.youtubeId} onChange={e=>setForm(f=>({...f,youtubeId:e.target.value}))}/>
+                  <div style={{fontSize:10,color:'var(--text3)',marginTop:4}}>
+                    O ID é a parte após "v=" na URL do YouTube
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:16}}>
+              <button className="btn btn-ghost" onClick={()=>setModal(false)}>Cancelar</button>
+              <button className="btn btn-gold"
+                onClick={salvar}
+                disabled={!form.nome.trim() && !(ytSel && form.nome)}
+                style={{opacity:(!form.nome.trim()&&!ytSel)?0.4:1}}
+              >
+                <Icon name="check"/>{editando?'Salvar':'Adicionar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Configurações do Supabase — preencha após criar o projeto ──
+const SUPABASE_URL = "https://jcecdvaqnlxkwutcdllk.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_K1nv-ioy4He64HuTL0CgYg_VunB-FpT";
+const YOUTUBE_API_KEY = "AIzaSyCxz7et9w1IMhOW-mYQ8Ab-wmx1ch1blM0";
+
+const MOISES_FN = SUPABASE_URL
+  ? `${SUPABASE_URL}/functions/v1/moises`
+  : null;
+
+// Mapeia chaves do Moises para labels em português
+const STEM_MAP = {
+  vocals:       { id:'vocals',       label:'Vocal',             cor:'#D85A30', bg:'rgba(216,90,48,0.15)',   icon:'mic'   },
+  drums:        { id:'drums',        label:'Bateria',           cor:'#5DCAA5', bg:'rgba(93,202,165,0.15)',  icon:'music' },
+  bass:         { id:'bass',         label:'Baixo',             cor:'#5B9BD5', bg:'rgba(91,155,213,0.15)',  icon:'music' },
+  piano:        { id:'piano',        label:'Teclado / Piano',   cor:'#9B8EC4', bg:'rgba(155,142,196,0.15)', icon:'music' },
+  other:        { id:'other',        label:'Guitarra / Outros', cor:'#C8A84B', bg:'rgba(200,168,75,0.15)',  icon:'music' },
+  instrumental: { id:'instrumental', label:'Instrumental',      cor:'#6BBF6A', bg:'rgba(107,191,106,0.15)', icon:'music' },
+};
+
+function PageStudio() {
+  const [uploaded, setUploaded]   = useState(null);
+  const [status, setStatus]       = useState('idle'); // idle | uploading | processing | done
+  const [progress, setProgress]   = useState(0);
+  const [mutes, setMutes]         = useState({});
+  const [vols, setVols]           = useState({ vocals:82, drums:90, bass:73, guitar:68, piano:55 });
+  const [tomOrig, setTomOrig]     = useState('Ré');
+  const [tomDest, setTomDest]     = useState('Ré');
+  const [workflow, setWorkflow]   = useState('stems-5');
+  const [toast, setToast]         = useState('');
+  const [moisesAtivo, setMoisesAtivo] = useState(false); // false = modo demo
+  const fileRef = useRef();
+  const timerRef = useRef(null);
+
+  const showToast = msg => { setToast(msg); setTimeout(()=>setToast(''),3000); };
+
+  // Stems por workflow
+  const STEMS_POR_WORKFLOW = {
+    'stems-4': [
+      { id:'vocals', label:'Vocal',           cor:'#D85A30', bg:'rgba(216,90,48,0.15)',   icon:'mic'   },
+      { id:'drums',  label:'Bateria',          cor:'#5DCAA5', bg:'rgba(93,202,165,0.15)',  icon:'music' },
+      { id:'bass',   label:'Baixo',            cor:'#5B9BD5', bg:'rgba(91,155,213,0.15)',  icon:'music' },
+      { id:'guitar', label:'Guitarra / Outros',cor:'#C8A84B', bg:'rgba(200,168,75,0.15)',  icon:'music' },
+    ],
+    'stems-5': [
+      { id:'vocals', label:'Vocal',            cor:'#D85A30', bg:'rgba(216,90,48,0.15)',   icon:'mic'   },
+      { id:'drums',  label:'Bateria',          cor:'#5DCAA5', bg:'rgba(93,202,165,0.15)',  icon:'music' },
+      { id:'bass',   label:'Baixo',            cor:'#5B9BD5', bg:'rgba(91,155,213,0.15)',  icon:'music' },
+      { id:'guitar', label:'Guitarra',         cor:'#C8A84B', bg:'rgba(200,168,75,0.15)',  icon:'music' },
+      { id:'piano',  label:'Teclado / Piano',  cor:'#9B8EC4', bg:'rgba(155,142,196,0.15)', icon:'music' },
+    ],
+    'vocal-remover': [
+      { id:'vocals',         label:'Vocal',        cor:'#D85A30', bg:'rgba(216,90,48,0.15)',  icon:'mic'   },
+      { id:'accompaniment',  label:'Instrumental', cor:'#6BBF6A', bg:'rgba(107,191,106,0.15)',icon:'music' },
+    ],
+  };
+
+  const stemsAtivos = STEMS_POR_WORKFLOW[workflow] || STEMS_POR_WORKFLOW['stems-5'];
+
+  // Cálculo de semitons
+  const TONS_ORD = ['Dó','Dó#','Ré','Ré#','Mi','Fá','Fá#','Sol','Sol#','Lá','Lá#','Si'];
+  const calcSemitons = (de, para) => {
+    let d = TONS_ORD.indexOf(para) - TONS_ORD.indexOf(de);
+    if (d > 6) d -= 12;
+    if (d < -6) d += 12;
+    return d;
+  };
+  const semitons = calcSemitons(tomOrig, tomDest);
+
+  // Simula processamento progressivo
+  const simularProcessamento = (file) => {
+    setUploaded(file);
+    setStatus('uploading');
+    setProgress(0);
+    let p = 0;
+
+    // Fase 1: upload (0→30% em 1.2s)
+    timerRef.current = setInterval(() => {
+      p += 5;
+      setProgress(p);
+      if (p >= 30) {
+        clearInterval(timerRef.current);
+        setStatus('processing');
+        // Fase 2: processamento IA (30→100% em 4s)
+        timerRef.current = setInterval(() => {
+          p += 2;
+          setProgress(Math.min(p, 99));
+          if (p >= 100) {
+            clearInterval(timerRef.current);
+            setProgress(100);
+            setStatus('done');
+          }
+        }, 80);
+      }
+    }, 200);
+  };
+
+  const handleFile = (file) => {
+    if (moisesAtivo) {
+      showToast('Modo API ativo — processamento real em breve!');
+      return;
+    }
+    simularProcessamento(file);
+  };
+
+  const resetar = () => {
+    clearInterval(timerRef.current);
+    setUploaded(null);
+    setStatus('idle');
+    setProgress(0);
+    setMutes({});
+  };
+
+  const toggleMute = id => setMutes(m => ({...m,[id]:!m[id]}));
+
+  const baixarFaixa = (stem) => {
+    showToast(`"${stem.label}" — disponível após integração com Moises.ai`);
+  };
+
+  const baixarTodas = () => {
+    showToast('Download de todas as faixas — disponível após integração com Moises.ai');
+  };
+
+  const exportarTransposicao = () => {
+    if (tomOrig === tomDest) { showToast('Selecione um tom destino diferente.'); return; }
+    showToast(`Transposição ${tomOrig} → ${tomDest} (${semitons > 0 ? '+' : ''}${semitons} semitons) — disponível após integração`);
+  };
+
+  return (
+    <div>
+      {toast && <div className="toast">{toast}</div>}
+
+      {/* Banner modo demo */}
+      <div style={{
+        background: moisesAtivo ? 'var(--teal-bg)' : 'rgba(200,168,75,0.08)',
+        border: `0.5px solid ${moisesAtivo ? 'rgba(93,202,165,0.4)' : 'rgba(200,168,75,0.3)'}`,
+        borderRadius:'var(--r)', padding:'12px 16px', marginBottom:16,
+        display:'flex', alignItems:'center', justifyContent:'space-between', gap:12,
+      }}>
+        <div style={{display:'flex',alignItems:'flex-start',gap:10}}>
+          <Icon name={moisesAtivo?'check':'info'} size={16} style={{color:moisesAtivo?'var(--teal)':'var(--gold)',flexShrink:0,marginTop:1}}/>
+          <div>
+            <div style={{fontSize:13,fontWeight:600,color:moisesAtivo?'var(--teal)':'var(--gold)'}}>
+              {moisesAtivo ? 'Moises.ai conectado' : 'Modo demonstração'}
+            </div>
+            <div style={{fontSize:11,color:'var(--text2)',marginTop:2}}>
+              {moisesAtivo
+                ? 'Separação real de faixas ativa via Supabase Edge Function.'
+                : 'Interface completa e funcional. Aguardando aprovação da API Key do Moises.ai — quando chegar, é só ativar aqui.'}
+            </div>
+          </div>
+        </div>
+        {!moisesAtivo && (
+          <button className="btn btn-ghost btn-sm" style={{flexShrink:0}} onClick={()=>{ setMoisesAtivo(true); showToast('Modo API ativado! Configure a chave em Configurações.'); }}>
+            Ativar API
+          </button>
+        )}
+      </div>
+
+      {/* Seletor de workflow */}
+      <div className="card" style={{marginBottom:14}}>
+        <div className="card-title">Tipo de separação</div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          {[
+            { id:'stems-4', label:'4 faixas',    sub:'Vocal · Bateria · Baixo · Guitarra' },
+            { id:'stems-5', label:'5 faixas ★',  sub:'+ Teclado separado (recomendado)' },
+            { id:'vocal-remover', label:'Tirar vocal', sub:'Vocal · Instrumental' },
+          ].map(w => (
+            <div key={w.id}
+              onClick={()=>{ if(status==='idle') setWorkflow(w.id); }}
+              style={{
+                flex:1, minWidth:140, padding:'10px 14px', borderRadius:'var(--r)',
+                border:`1.5px solid ${workflow===w.id?'var(--gold)':'var(--border)'}`,
+                background:workflow===w.id?'var(--gold-bg)':'var(--surface2)',
+                cursor:status==='idle'?'pointer':'default', transition:'all 0.12s'
+              }}
+            >
+              <div style={{fontSize:13,fontWeight:600,color:workflow===w.id?'var(--gold)':'var(--text)'}}>{w.label}</div>
+              <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{w.sub}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Upload + resultado */}
+      <div className="card" style={{marginBottom:14}}>
+
+        {status === 'idle' && (
+          <div className="upload-area"
+            onClick={()=>fileRef.current.click()}
+            onDragOver={e=>{e.preventDefault();e.currentTarget.style.borderColor='var(--gold)';}}
+            onDragLeave={e=>{e.currentTarget.style.borderColor='';}}
+            onDrop={e=>{e.preventDefault();e.currentTarget.style.borderColor='';const f=e.dataTransfer.files[0];if(f)handleFile(f);}}
+          >
+            <input ref={fileRef} type="file" accept="audio/*" style={{display:'none'}}
+              onChange={e=>e.target.files[0]&&handleFile(e.target.files[0])}/>
+            <Icon name="upload"/>
+            <p>Arraste ou clique para carregar o áudio</p>
+            <span>MP3, WAV, M4A · Máx 50 MB</span>
+          </div>
+        )}
+
+        {status !== 'idle' && (
+          <>
+            {/* Info do arquivo */}
+            <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:14,padding:'10px 12px',background:'var(--surface2)',borderRadius:'var(--r)'}}>
+              <div className="musica-cover"><Icon name="music"/></div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:600,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{uploaded?.name}</div>
+                <div style={{fontSize:11,color:'var(--text3)'}}>{uploaded?(uploaded.size/1024/1024).toFixed(1)+' MB':''}</div>
+              </div>
+              {status==='uploading'  && <span className="tag tag-gold">Enviando...</span>}
+              {status==='processing' && <span className="tag tag-gold">Processando {progress}%</span>}
+              {status==='done'       && <span className="tag tag-teal">✓ Pronto</span>}
+              <button className="btn btn-ghost btn-sm" onClick={resetar}><Icon name="x"/></button>
+            </div>
+
+            {/* Barra de progresso */}
+            {(status==='uploading'||status==='processing') && (
+              <div style={{marginBottom:16}}>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'var(--text3)',marginBottom:5}}>
+                  <span>{status==='uploading'?'Enviando arquivo...':'IA separando as faixas...'}</span>
+                  <span>{progress}%</span>
+                </div>
+                <div style={{height:5,background:'var(--dark4)',borderRadius:3,overflow:'hidden'}}>
+                  <div style={{height:'100%',background:'var(--gold)',borderRadius:3,width:`${progress}%`,transition:'width 0.3s ease'}}/>
+                </div>
+                {status==='processing' && (
+                  <div style={{fontSize:11,color:'var(--text3)',marginTop:6}}>
+                    {progress < 50 ? 'Analisando estrutura da música...'
+                     : progress < 80 ? 'Isolando instrumentos...'
+                     : 'Finalizando separação...'}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Faixas prontas */}
+            {status==='done' && (
+              <>
+                <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:12}}>
+                  Faixas separadas — {stemsAtivos.length} pistas
+                </div>
+                {stemsAtivos.map(stem => {
+                  const vol = vols[stem.id] ?? 80;
+                  const mutado = !!mutes[stem.id];
+                  return (
+                    <div key={stem.id} className="stem-row">
+                      <div className="stem-icon" style={{background:stem.bg}}>
+                        <Icon name={stem.icon} size={15} style={{color:stem.cor}}/>
+                      </div>
+                      <div className="stem-label">{stem.label}</div>
+                      <div className="stem-bar-wrap" style={{opacity:mutado?0.3:1}} onClick={e=>{
+                        const rect=e.currentTarget.getBoundingClientRect();
+                        const pct=Math.round(((e.clientX-rect.left)/rect.width)*100);
+                        setVols(v=>({...v,[stem.id]:pct}));
+                      }}>
+                        <div className="stem-bar-fill" style={{width:`${mutado?0:vol}%`,background:stem.cor}}/>
+                      </div>
+                      <span style={{fontSize:11,color:'var(--text3)',width:28,textAlign:'right',flexShrink:0}}>
+                        {mutado?'—':vol}
+                      </span>
+                      <button
+                        className={`stem-mute ${mutado?'muted':''}`}
+                        title={mutado?'Reativar':'Mutar'}
+                        onClick={()=>toggleMute(stem.id)}
+                      >
+                        <Icon name={mutado?'mute':'volume'} size={13} style={{color:mutado?'var(--coral)':'var(--text3)'}}/>
+                      </button>
+                      <button className="stem-mute" title="Baixar faixa" onClick={()=>baixarFaixa(stem)}>
+                        <Icon name="download" size={13} style={{color:'var(--text3)'}}/>
+                      </button>
+                    </div>
+                  );
+                })}
+                <button className="btn btn-gold" style={{width:'100%',justifyContent:'center',marginTop:14}} onClick={baixarTodas}>
+                  <Icon name="download"/>Baixar todas as faixas
+                </button>
+              </>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Transposição */}
+      <div className="card">
+        <div className="card-title">Transposição de tom</div>
+        <div style={{display:'flex',alignItems:'flex-start',gap:20,flexWrap:'wrap',marginBottom:14}}>
+          <div>
+            <div style={{fontSize:11,color:'var(--text3)',marginBottom:6}}>Tom original</div>
+            <div style={{display:'flex',gap:4,flexWrap:'wrap',maxWidth:260}}>
+              {TONS.map(t=><button key={t} className={`tom-key ${tomOrig===t?'active':''}`} style={{width:34,height:32,fontSize:11}} onClick={()=>setTomOrig(t)}>{t}</button>)}
+            </div>
+          </div>
+          <div style={{paddingTop:24,fontSize:20,color:'var(--text3)'}}>→</div>
+          <div>
+            <div style={{fontSize:11,color:'var(--text3)',marginBottom:6}}>Tom destino</div>
+            <div style={{display:'flex',gap:4,flexWrap:'wrap',maxWidth:260}}>
+              {TONS.map(t=><button key={t} className={`tom-key ${tomDest===t?'active':''}`} style={{width:34,height:32,fontSize:11}} onClick={()=>setTomDest(t)}>{t}</button>)}
+            </div>
+          </div>
+        </div>
+
+        {tomOrig !== tomDest && (
+          <div style={{padding:'10px 14px',background:'var(--gold-bg)',border:'0.5px solid rgba(200,168,75,0.3)',borderRadius:8,marginBottom:14,fontSize:12,color:'var(--text2)'}}>
+            <strong style={{color:'var(--gold)'}}>{tomOrig}</strong> → <strong style={{color:'var(--teal)'}}>{tomDest}</strong>
+            &nbsp;·&nbsp;
+            <span style={{color:'var(--text3)'}}>{semitons > 0 ? `+${semitons}` : semitons} semiton{Math.abs(semitons)!==1?'s':''}</span>
+            &nbsp;·&nbsp;
+            <span style={{color:'var(--text3)'}}>{semitons > 0 ? 'subindo' : semitons < 0 ? 'descendo' : ''}</span>
+          </div>
+        )}
+
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          <button className="btn btn-gold" onClick={exportarTransposicao} disabled={tomOrig===tomDest} style={{opacity:tomOrig===tomDest?0.4:1}}>
+            <Icon name="download"/>Exportar com tom ajustado
+          </button>
+          <button className="btn btn-ghost" onClick={()=>{ setTomDest(tomOrig); showToast('Tom resetado.'); }}>
+            Resetar
+          </button>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes shimmer {
+          0%   { opacity: 1; }
+          50%  { opacity: 0.6; }
+          100% { opacity: 1; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+
+function PageConfig({ membros }) {
+  const [toast, setToast] = useState('');
+  const [moisesKey, setMoisesKey] = useState('');
+  const [salvandoKey, setSalvandoKey] = useState(false);
+  const [testando, setTestando] = useState(false);
+  const [statusSupabase, setStatusSupabase] = useState(null);
+  const showToast = msg => { setToast(msg); setTimeout(()=>setToast(''),3000); };
+
+  // Testa conexão com Supabase ao abrir a página
+  useEffect(() => {
+    async function testar() {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+          headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
+        });
+        setStatusSupabase(res.ok || res.status === 404 ? 'ok' : 'erro');
+      } catch {
+        setStatusSupabase('erro');
+      }
+    }
+    if (SUPABASE_URL) testar();
+  }, []);
+
+  const salvarMoisesKey = async () => {
+    if (!moisesKey.trim()) return;
+    setSalvandoKey(true);
+    try {
+      // Salva via Edge Function (a key vai para os secrets do Supabase via CLI)
+      // Aqui apenas confirmamos visualmente — o deploy da secret é feito via CLI
+      await new Promise(r => setTimeout(r, 800));
+      showToast('Cole a chave no terminal: supabase secrets set MOISES_API_KEY=' + moisesKey.slice(0,8) + '...');
+      setMoisesKey('');
+    } finally {
+      setSalvandoKey(false);
+    }
+  };
+
+  const testarStudio = async () => {
+    setTestando(true);
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/functions/v1/moises?action=status&jobId=teste`,
+        { headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+      );
+      const data = await res.json();
+      if (data.error === 'MOISES_API_KEY não configurada no Supabase') {
+        showToast('⚠️ Edge Function ok, mas MOISES_API_KEY ainda não configurada.');
+      } else if (res.status === 404 || data.error?.includes('jobId')) {
+        showToast('✓ Edge Function respondendo corretamente!');
+      } else {
+        showToast('✓ Conectado! Edge Function funcionando.');
+      }
+    } catch {
+      showToast('✗ Edge Function não encontrada. Verifique o deploy.');
+    } finally {
+      setTestando(false);
+    }
+  };
+
+  return (
+    <div>
+      {toast && <div className="toast">{toast}</div>}
+
+      <div className="settings-section">
+        <div className="settings-title">Sobre o ministério</div>
+        <div className="card">
+          <div className="form-group">
+            <label className="form-label">Nome do ministério</label>
+            <input className="form-input" defaultValue="Ministério de Louvor" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Igreja / Congregação</label>
+            <input className="form-input" defaultValue="Igreja local" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Líder principal</label>
+            <input className="form-input" defaultValue="Pastor Éder" readOnly style={{opacity:0.7}}/>
+          </div>
+          <button className="btn btn-gold" onClick={()=>showToast('Configurações salvas!')}>
+            <Icon name="check"/>Salvar
+          </button>
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <div className="settings-title">Supabase</div>
+        <div className="card">
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+            <div>
+              <div style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>tjolkkhfvleebtaoeraj.supabase.co</div>
+              <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>Banco de dados e Storage configurados</div>
+            </div>
+            {statusSupabase === 'ok' && <span className="tag tag-teal">✓ Conectado</span>}
+            {statusSupabase === 'erro' && <span className="tag tag-coral">✗ Erro</span>}
+            {statusSupabase === null && <span className="tag tag-gray">Verificando...</span>}
+          </div>
+          <div style={{background:'var(--dark3)',borderRadius:8,padding:'10px 12px',fontSize:11,color:'var(--text3)',fontFamily:'monospace',wordBreak:'break-all'}}>
+            URL: {SUPABASE_URL}<br/>
+            Key: {SUPABASE_ANON_KEY.slice(0,24)}...
+          </div>
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <div className="settings-title">Integração Studio — Moises.ai</div>
+        <div className="card">
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:4}}>Status da Edge Function</div>
+            <div style={{fontSize:12,color:'var(--text2)',marginBottom:10}}>
+              A API Key do Moises fica protegida nos secrets do Supabase — nunca exposta no navegador.
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-ghost" onClick={testarStudio} disabled={testando}>
+                {testando ? 'Testando...' : 'Testar conexão'}
+              </button>
+            </div>
+          </div>
+
+          <div className="divider"/>
+
+          <div style={{fontSize:12,fontWeight:600,color:'var(--text)',marginBottom:8}}>
+            Configurar API Key no Supabase
+          </div>
+          <div style={{background:'var(--dark3)',borderRadius:8,padding:'12px',fontSize:12,color:'var(--text2)',marginBottom:12,fontFamily:'monospace',lineHeight:1.8}}>
+            <span style={{color:'var(--text3)'}}>// Execute no terminal:</span><br/>
+            <span style={{color:'var(--teal)'}}>supabase</span> secrets set MOISES_API_KEY=<span style={{color:'var(--gold)'}}>sua_chave_aqui</span><br/>
+            <span style={{color:'var(--teal)'}}>supabase</span> functions deploy moises
+          </div>
+
+          <div style={{fontSize:11,color:'var(--text3)'}}>
+            Obtenha sua chave em <strong style={{color:'var(--text2)'}}>developer-api.moises.ai</strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <div className="settings-title">Notificações</div>
+        <div className="card">
+          {['Avisar quando escalado','Lembrete 1 dia antes do culto','Notificar ao alterar tom ou repertório'].map((item,i) => (
+            <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderBottom:i<2?'0.5px solid var(--border2)':'none'}}>
+              <span style={{fontSize:13,color:'var(--text)'}}>{item}</span>
+              <div style={{width:40,height:22,borderRadius:11,background:'var(--gold)',cursor:'pointer',position:'relative',flexShrink:0}}>
+                <div style={{position:'absolute',top:3,right:3,width:16,height:16,borderRadius:'50%',background:'var(--dark)'}}/>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── APP PRINCIPAL ─────────────────────────────────────────────────
+
+// ── Supabase client leve (sem SDK) ───────────────────────────────
+const sb = {
+  async get(tabela, ordem) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${tabela}?order=${ordem||'id'}&limit=500`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
+    });
+    if (!res.ok) throw new Error(`Erro ao carregar ${tabela}`);
+    return res.json();
+  },
+  async insert(tabela, dados) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${tabela}`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+      body: JSON.stringify(dados)
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.message||'Erro ao salvar'); }
+    const r = await res.json(); return Array.isArray(r) ? r[0] : r;
+  },
+  async update(tabela, id, dados) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${tabela}?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+      body: JSON.stringify(dados)
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.message||'Erro ao atualizar'); }
+    const r = await res.json(); return Array.isArray(r) ? r[0] : r;
+  },
+  async delete(tabela, id) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${tabela}?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
+    });
+    if (!res.ok) throw new Error('Erro ao excluir');
+  }
+};
+
+const dbToApp = {
+  membro: r => ({ id:r.id, nome:r.nome, papel:r.papel||'', funcoes:r.funcoes||[], cor:r.cor||'#C8A84B', tipo:r.tipo||'musico', pin:r.pin||'1234', acesso:r.acesso||'membro' }),
+  escala: r => {
+    let musicos = r.musicos || {};
+    let repertorio = r.repertorio || [];
+    if (typeof musicos === 'string') try { musicos = JSON.parse(musicos); } catch { musicos = {}; }
+    if (typeof repertorio === 'string') try { repertorio = JSON.parse(repertorio); } catch { repertorio = []; }
+    return {
+      id: r.id,
+      data: r.data || '',
+      dia: r.dia || '',
+      culto: r.culto || '',
+      ceia: !!r.ceia,
+      ministerio: r.ministerio || '',
+      vocal: r.vocal || '',
+      musicos,
+      repertorio
+    };
+  },
+  musica: r => ({ id:r.id, nome:r.nome, artista:r.artista||'', tom:r.tom||'Ré', bpm:r.bpm||0, youtubeId:r.youtube_id||'', capa:r.capa||'' }),
+  aviso:  r => ({ id:r.id, titulo:r.titulo, corpo:r.corpo||'', tipo:r.tipo||'info', destinatario:r.destinatario||'todos', autor:r.autor||'', lido:false, data: new Date(r.criado_em).toLocaleDateString('pt-BR') }),
+};
+const appToDb = {
+  membro: m => ({ nome:m.nome, papel:m.papel, funcoes:m.funcoes, cor:m.cor, tipo:m.tipo, pin:m.pin, acesso:m.acesso }),
+  escala: e => ({ data:e.data, dia:e.dia, culto:e.culto, ceia:e.ceia, ministerio:e.ministerio, vocal:e.vocal, musicos:e.musicos, repertorio:e.repertorio }),
+  musica: m => ({ nome:m.nome, artista:m.artista, tom:m.tom, bpm:m.bpm||null, youtube_id:m.youtubeId||null, capa:m.capa||null }),
+  aviso:  a => ({ titulo:a.titulo, corpo:a.corpo, tipo:a.tipo, destinatario:a.destinatario, autor:a.autor||null }),
+};
+
+function App() {
+  const [usuario, setUsuario]   = useState(null);
+  const [page, setPage]         = useState('dashboard');
+  const [carregando, setCarregando] = useState(true);
+  const [erroDb, setErroDb]     = useState('');
+  const [membros, setMembros]   = useState(MEMBROS);
+  const [escalas, setEscalas]   = useState(ESCALAS_INICIAIS);
+  const [musicas, setMusicas]   = useState(MUSICAS_INICIAIS);
+  const [avisos,  setAvisos]    = useState(AVISOS_INICIAIS);
+  const [playing, setPlaying]   = useState(false);
+  const [currentTrack, setCurrentTrack] = useState(MUSICAS_INICIAIS[0]);
+  const [progress, setProgress] = useState(35);
+  const [playerMusica, setPlayerMusica] = useState(null); // mini player global
+
+  const [statusLog, setStatusLog] = useState('Iniciando...');
+
+  // Carrega tudo do Supabase
+  useEffect(() => {
+    async function carregar() {
+      try {
+        setStatusLog('Conectando ao banco...');
+        const [dbM, dbE, dbMu, dbA] = await Promise.all([
+          sb.get('membros','id'), sb.get('escalas','id'),
+          sb.get('musicas','id'), sb.get('avisos','criado_em.desc'),
+        ]);
+
+        setStatusLog(`Banco: ${dbM.length} membros, ${dbE.length} escalas, ${dbMu.length} músicas, ${dbA.length} avisos`);
+
+        // Membros
+        if (dbM.length === 0) {
+          for (const m of MEMBROS) {
+            try { await sb.insert('membros', appToDb.membro(m)); } catch(e) { console.warn('membro:', e.message); }
+          }
+          const f = await sb.get('membros','id');
+          setMembros(f.length > 0 ? f.map(dbToApp.membro) : MEMBROS);
+        } else setMembros(dbM.map(dbToApp.membro));
+
+        // Escalas
+        if (dbE.length === 0) {
+          for (const e of ESCALAS_INICIAIS) {
+            try { await sb.insert('escalas', appToDb.escala(e)); } catch(e) { console.warn('escala:', e.message); }
+          }
+          const f = await sb.get('escalas','id');
+          setEscalas(f.length > 0 ? f.map(dbToApp.escala) : ESCALAS_INICIAIS);
+        } else setEscalas(dbE.map(dbToApp.escala));
+
+        // Músicas
+        if (dbMu.length === 0) {
+          for (const m of MUSICAS_INICIAIS) {
+            try { await sb.insert('musicas', appToDb.musica(m)); } catch(e) { console.warn('musica:', e.message); }
+          }
+          const f = await sb.get('musicas','id');
+          setMusicas(f.length > 0 ? f.map(dbToApp.musica) : MUSICAS_INICIAIS);
+        } else setMusicas(dbMu.map(dbToApp.musica));
+
+        // Avisos
+        if (dbA.length === 0) {
+          for (const a of AVISOS_INICIAIS) {
+            try { await sb.insert('avisos', appToDb.aviso(a)); } catch(e) { console.warn('aviso:', e.message); }
+          }
+          const f = await sb.get('avisos','criado_em.desc');
+          setAvisos(f.length > 0 ? f.map(dbToApp.aviso) : AVISOS_INICIAIS);
+        } else setAvisos(dbA.map(dbToApp.aviso));
+
+        setErroDb('');
+        setStatusLog('Pronto!');
+      } catch(e) {
+        console.error('Erro ao carregar:', e);
+        setErroDb(e.message);
+        setStatusLog('Erro: ' + e.message);
+        setMembros(MEMBROS);
+        setEscalas(ESCALAS_INICIAIS);
+        setMusicas(MUSICAS_INICIAIS);
+        setAvisos(AVISOS_INICIAIS);
+      } finally {
+        setCarregando(false);
+      }
+    }
+    carregar();
+  }, []);
+
+  useEffect(() => {
+    let t;
+    if (playing) t = setInterval(() => setProgress(p => p >= 99 ? 0 : p + 0.3), 500);
+    return () => clearInterval(t);
+  }, [playing]);
+
+  // ── CRUD com Supabase ─────────────────────────────────────────
+  const salvarMembro = async (m) => {
+    try {
+      if (m.id && m.id < 100000) { await sb.update('membros',m.id,appToDb.membro(m)); setMembros(ms=>ms.map(x=>x.id===m.id?m:x)); }
+      else { const r=await sb.insert('membros',appToDb.membro(m)); m={...m,id:r.id}; setMembros(ms=>[...ms,m]); }
+    } catch(e) { alert('Erro ao salvar membro: '+e.message); }
+    return m;
+  };
+
+  const excluirMembro = async (id) => {
+    try { await sb.delete('membros',id); setMembros(ms=>ms.filter(m=>m.id!==id)); } catch(e) { alert('Erro: '+e.message); }
+  };
+
+  const salvarEscala = async (e) => {
+    try {
+      if (e.id && e.id < 100000) { await sb.update('escalas',e.id,appToDb.escala(e)); setEscalas(es=>es.map(x=>x.id===e.id?e:x)); }
+      else { const r=await sb.insert('escalas',appToDb.escala(e)); e={...e,id:r.id}; setEscalas(es=>[...es,e].sort((a,b)=>a.data.localeCompare(b.data))); }
+    } catch(ex) { alert('Erro ao salvar escala: '+ex.message); }
+    return e;
+  };
+
+  const excluirEscala = async (id) => {
+    try { await sb.delete('escalas',id); setEscalas(es=>es.filter(e=>e.id!==id)); } catch(e) { alert('Erro: '+e.message); }
+  };
+
+  const atualizarRepertorioEscala = async (escaladId, repertorio) => {
+    try { await sb.update('escalas',escaladId,{repertorio}); setEscalas(es=>es.map(e=>e.id===escaladId?{...e,repertorio}:e)); } catch(e) { alert('Erro: '+e.message); }
+  };
+
+  const salvarMusica = async (m) => {
+    try {
+      if (m.id && m.id < 100000) { await sb.update('musicas',m.id,appToDb.musica(m)); setMusicas(ms=>ms.map(x=>x.id===m.id?m:x)); }
+      else { const r=await sb.insert('musicas',appToDb.musica(m)); m={...m,id:r.id}; setMusicas(ms=>[...ms,m]); }
+    } catch(e) { alert('Erro ao salvar música: '+e.message); }
+    return m;
+  };
+
+  const excluirMusica = async (id) => {
+    try { await sb.delete('musicas',id); setMusicas(ms=>ms.filter(m=>m.id!==id)); } catch(e) { alert('Erro: '+e.message); }
+  };
+
+  const salvarAviso = async (a) => {
+    try {
+      if (a.id && a.id < 100000) { await sb.update('avisos',a.id,appToDb.aviso(a)); setAvisos(as=>as.map(x=>x.id===a.id?{...x,...a}:x)); }
+      else { const r=await sb.insert('avisos',appToDb.aviso(a)); a={...a,id:r.id,lido:false,data:'Agora'}; setAvisos(as=>[a,...as]); }
+    } catch(e) { alert('Erro ao salvar aviso: '+e.message); }
+    return a;
+  };
+
+  const excluirAviso = async (id) => {
+    try { await sb.delete('avisos',id); setAvisos(as=>as.filter(a=>a.id!==id)); } catch(e) { alert('Erro: '+e.message); }
+  };
+
+  // Tela de carregamento
+  if (carregando) return (
+    <div style={{minHeight:'100vh',background:'var(--dark)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16}}>
+      <div style={{fontSize:48,color:'var(--gold)'}}>♪</div>
+      <div style={{fontSize:16,fontWeight:600,color:'var(--gold)'}}>Harpa</div>
+      <div style={{fontSize:13,color:'var(--text3)'}}>{statusLog}</div>
+      {erroDb && <div style={{fontSize:11,color:'var(--coral)',maxWidth:280,textAlign:'center',marginTop:4}}>Erro: {erroDb}</div>}
+    </div>
+  );
+
+  if (!usuario) return <TelaLogin membros={membros} onLogin={setUsuario}/>;
+  const isAdmin    = usuario.acesso === 'admin';
+  const isMinistro = usuario.acesso === 'admin' || usuario.acesso === 'ministro';
+
+  // Filtra avisos: admin/ministro vê todos; membro vê só os seus
+  const avisosVisiveis = isMinistro
+    ? avisos
+    : avisos.filter(a => !a.destinatario || a.destinatario === usuario.nome || a.destinatario === 'todos');
+
+  const naoLidos = avisosVisiveis.filter(a=>!a.lido).length;
+
+  const navItems = [
+    { id:'dashboard', label:'Dashboard',     icon:'dashboard', section:'geral' },
+    { id:'avisos',    label:'Avisos',         icon:'bell',      section:'geral', badge: naoLidos>0?naoLidos:null },
+    { id:'ministros', label:'Ministros',      icon:'users',     section:'ministerio' },
+    { id:'escalas',   label:'Escalas',        icon:'calendar',  section:'ministerio' },
+    { id:'musicas',   label:'Músicas',        icon:'music',     section:'repertorio' },
+    { id:'studio',    label:'Studio ✦',       icon:'mic',       section:'repertorio' },
+    ...(isAdmin ? [{ id:'config', label:'Configurações', icon:'settings', section:'config' }] : []),
+  ];
+
+  const sections = [
+    { id:'geral',       label:'Geral' },
+    { id:'ministerio',  label:'Ministério' },
+    { id:'repertorio',  label:'Repertório' },
+    ...(isAdmin ? [{ id:'config', label:'Sistema' }] : []),
+  ];
+
+  const pageTitles = {
+    dashboard: { title:'Dashboard',       sub:'Visão geral do ministério' },
+    avisos:    { title:'Avisos',           sub:'Comunicados e lembretes' },
+    ministros: { title:'Ministros',        sub:`${membros.length} membros` },
+    escalas:   { title:'Escalas',          sub:'Junho · Julho 2025' },
+    musicas:   { title:'Músicas',          sub:`${musicas.length} músicas` },
+    studio:    { title:'Studio',           sub:'Separação de faixas · Transposição' },
+    config:    { title:'Configurações',    sub:'Ministério de Louvor' },
+  };
+
+  const fmt = v => {
+    const s = Math.round(v * 4.32);
+    return `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
+  };
+
+  const initials = n => n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+
+  return (
+    <div className="app-shell">
+      {/* SIDEBAR */}
+      <div className="sidebar">
+        <div className="sidebar-logo">
+          <div className="logo-icon">♪</div>
+          <div>
+            <div className="logo-name">Harpa</div>
+            <div className="logo-sub">Ministério de Louvor</div>
+          </div>
+        </div>
+        <div className="sidebar-nav">
+          {sections.map(sec => {
+            const items = navItems.filter(n=>n.section===sec.id);
+            if(!items.length) return null;
+            return (
+              <div key={sec.id}>
+                <div className="nav-section-label">{sec.label}</div>
+                {items.map(item => (
+                  <button key={item.id} className={`nav-item ${page===item.id?'active':''}`} onClick={()=>setPage(item.id)}>
+                    <Icon name={item.icon}/>
+                    <span style={{flex:1}}>{item.label}</span>
+                    {item.badge && <span className="nav-badge">{item.badge}</span>}
+                  </button>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+        <div className="sidebar-footer">
+          <div className="user-row">
+            <div className="user-av" style={{background:usuario.cor+'22',color:usuario.cor,border:`1px solid ${usuario.cor}44`}}>
+              {initials(usuario.nome)}
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div className="user-name" style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{usuario.nome}</div>
+              <div className="user-role">{usuario.papel}</div>
+            </div>
+            <button onClick={()=>{setUsuario(null);setPage('dashboard');}}
+              style={{background:'none',border:'none',color:'var(--text3)',cursor:'pointer',padding:4,flexShrink:0}}
+              title="Sair">
+              <Icon name="x" size={14}/>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* MAIN */}
+      <div className="main-area">
+        <div className="topbar">
+          <div>
+            <div className="topbar-title">{pageTitles[page]?.title}</div>
+            <div className="topbar-sub">{pageTitles[page]?.sub}</div>
+          </div>
+          <div className="topbar-actions">
+            {isAdmin && <span className="tag tag-gold" style={{fontSize:10,marginRight:4}}>Admin</span>}
+            {!isAdmin && isMinistro && <span className="tag tag-purple" style={{fontSize:10,marginRight:4}}>Ministro</span>}
+            <button className={`ctrl-btn ${naoLidos>0?'notif-dot':''}`} onClick={()=>setPage('avisos')}>
+              <Icon name="bell" size={18}/>
+            </button>
+          </div>
+        </div>
+
+        <div className="page-content">
+          {page==='dashboard' && <PageDashboard membros={membros} escalas={escalas} musicas={musicas} avisos={avisosVisiveis} onPage={setPage} usuario={usuario} onPlayMusica={setPlayerMusica}/>}
+          {page==='avisos'    && <PageAvisos avisos={avisosVisiveis} setAvisos={setAvisos} salvarAviso={salvarAviso} excluirAviso={excluirAviso} usuario={usuario} membros={membros}/>}
+          {page==='ministros' && <PageMinistros membros={membros} setMembros={setMembros} salvarMembro={salvarMembro} excluirMembro={excluirMembro} usuario={usuario}/>}
+          {page==='escalas'   && <PageEscalas escalas={escalas} setEscalas={setEscalas} salvarEscala={salvarEscala} excluirEscala={excluirEscala} atualizarRepertorio={atualizarRepertorioEscala} membros={membros} musicas={musicas} avisos={avisos} setAvisos={setAvisos} salvarAviso={salvarAviso} usuario={usuario} onPlayMusica={setPlayerMusica}/>}
+          {page==='musicas'   && <PageMusicas musicas={musicas} setMusicas={setMusicas} salvarMusica={salvarMusica} excluirMusica={excluirMusica} onPlay={m=>{setCurrentTrack(m);setPlaying(true);}} onPlayMusica={setPlayerMusica} usuario={usuario}/>}
+          {page==='studio'    && <PageStudio/>}
+          {page==='config'    && isAdmin && <PageConfig membros={membros}/>}
+        </div>
+
+        {/* Mini Player YouTube Global */}
+        {playerMusica && <MiniPlayerYT musica={playerMusica} onClose={()=>setPlayerMusica(null)}/>}
+
+        {/* MINI PLAYER */}
+        <div className="mini-player">
+          <div className="musica-cover" style={{width:36,height:36,borderRadius:8,flexShrink:0}}><Icon name="music"/></div>
+          <div style={{width:140,flexShrink:0}}>
+            <div style={{fontSize:13,fontWeight:600,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{currentTrack.nome}</div>
+            <div style={{fontSize:11,color:'var(--text3)'}}>{currentTrack.artista} · {currentTrack.tom}</div>
+          </div>
+          <div className="player-track">
+            <div className="player-bar-wrap"><div className="player-bar-fill" style={{width:`${progress}%`}}/></div>
+            <div className="player-times"><span>{fmt(progress/100)}</span><span>{fmt(1)}</span></div>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:4,flexShrink:0}}>
+            <button className="ctrl-btn"><Icon name="prev"/></button>
+            <button className="play-btn" onClick={()=>setPlaying(p=>!p)}><Icon name={playing?'pause':'play'}/></button>
+            <button className="ctrl-btn"><Icon name="skip"/></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<!-- Service Worker para PWA -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      console.log('SW registrado:', reg.scope);
+
+      // Verifica atualização ao abrir o app
+      reg.update();
+
+      // Quando uma nova versão está esperando, mostra aviso
+      reg.addEventListener('updatefound', () => {
+        const newSW = reg.installing;
+        newSW.addEventListener('statechange', () => {
+          if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+            // Nova versão disponível — recarrega automaticamente
+            newSW.postMessage({ type: 'SKIP_WAITING' });
+            window.location.reload();
+          }
+        });
+      });
+    }).catch(e => console.log('SW erro:', e));
+
+    // Recarrega quando o SW toma controle
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
+  });
+}
+</script>
+</body>
+</html>
