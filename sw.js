@@ -1,6 +1,6 @@
 // Harpa PWA — Service Worker
 // ⚠️ Mude o número da versão toda vez que atualizar o app
-const CACHE_VERSION = 'harpa-v3';
+const CACHE_VERSION = 'harpa-v4';
 const ASSETS = [
   '/',
   '/index.html',
