@@ -2020,11 +2020,8 @@ const SUPABASE_URL = "https://jcecdvaqnlxkwutcdllk.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_K1nv-ioy4He64HuTL0CgYg_VunB-FpT";
 const YOUTUBE_API_KEY = "AIzaSyCxz7et9w1IMhOW-mYQ8Ab-wmx1ch1blM0";
 const VAPID_PUBLIC_KEY = "BC-sVXVrWoM5nmMCKM3PSlrYngl3Nwa9aKXgloKsmubDigxW_7s0IfMMpBkOySdlGSFZhI7EoX6G5Mh738p3hj0";
-const PUSH_FN = `${SUPABASE_URL}/functions/v1/push`;
-
-const MOISES_FN = SUPABASE_URL
-  ? `${SUPABASE_URL}/functions/v1/moises`
-  : null;
+const PUSH_FN  = `${SUPABASE_URL}/functions/v1/push`;
+const LALAL_FN = `${SUPABASE_URL}/functions/v1/lalal`;
 
 // Mapeia chaves do Moises para labels em português
 const STEM_MAP = {
@@ -2038,106 +2035,167 @@ const STEM_MAP = {
 
 function PageStudio() {
   const [uploaded, setUploaded]   = useState(null);
-  const [status, setStatus]       = useState('idle'); // idle | uploading | processing | done
+  const [jobId, setJobId]         = useState(null);
+  const [status, setStatus]       = useState('idle'); // idle | uploading | processing | done | error
   const [progress, setProgress]   = useState(0);
+  const [faixas, setFaixas]       = useState([]); // resultado real do Lalal
   const [mutes, setMutes]         = useState({});
-  const [vols, setVols]           = useState({ vocals:82, drums:90, bass:73, guitar:68, piano:55 });
+  const [vols, setVols]           = useState({});
   const [tomOrig, setTomOrig]     = useState('Ré');
   const [tomDest, setTomDest]     = useState('Ré');
   const [workflow, setWorkflow]   = useState('stems-5');
   const [toast, setToast]         = useState('');
-  const [moisesAtivo, setMoisesAtivo] = useState(false); // false = modo demo
-  const fileRef = useRef();
+  const [lalalAtivo, setLalalAtivo] = useState(false);
+  const [errMsg, setErrMsg]       = useState('');
+  const fileRef  = useRef();
   const timerRef = useRef(null);
+  const pollRef  = useRef(null);
 
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(''),3000); };
 
-  // Stems por workflow
   const STEMS_POR_WORKFLOW = {
     'stems-4': [
-      { id:'vocals', label:'Vocal',           cor:'#D85A30', bg:'rgba(216,90,48,0.15)',   icon:'mic'   },
-      { id:'drums',  label:'Bateria',          cor:'#5DCAA5', bg:'rgba(93,202,165,0.15)',  icon:'music' },
-      { id:'bass',   label:'Baixo',            cor:'#5B9BD5', bg:'rgba(91,155,213,0.15)',  icon:'music' },
-      { id:'guitar', label:'Guitarra / Outros',cor:'#C8A84B', bg:'rgba(200,168,75,0.15)',  icon:'music' },
+      { id:'vocals', label:'Vocal',            cor:'#D85A30', bg:'rgba(216,90,48,0.15)',   icon:'mic'   },
+      { id:'drums',  label:'Bateria',           cor:'#5DCAA5', bg:'rgba(93,202,165,0.15)',  icon:'music' },
+      { id:'bass',   label:'Baixo',             cor:'#5B9BD5', bg:'rgba(91,155,213,0.15)',  icon:'music' },
+      { id:'guitar', label:'Guitarra / Outros', cor:'#C8A84B', bg:'rgba(200,168,75,0.15)',  icon:'music' },
     ],
     'stems-5': [
-      { id:'vocals', label:'Vocal',            cor:'#D85A30', bg:'rgba(216,90,48,0.15)',   icon:'mic'   },
-      { id:'drums',  label:'Bateria',          cor:'#5DCAA5', bg:'rgba(93,202,165,0.15)',  icon:'music' },
-      { id:'bass',   label:'Baixo',            cor:'#5B9BD5', bg:'rgba(91,155,213,0.15)',  icon:'music' },
-      { id:'guitar', label:'Guitarra',         cor:'#C8A84B', bg:'rgba(200,168,75,0.15)',  icon:'music' },
-      { id:'piano',  label:'Teclado / Piano',  cor:'#9B8EC4', bg:'rgba(155,142,196,0.15)', icon:'music' },
+      { id:'vocals', label:'Vocal',             cor:'#D85A30', bg:'rgba(216,90,48,0.15)',   icon:'mic'   },
+      { id:'drums',  label:'Bateria',           cor:'#5DCAA5', bg:'rgba(93,202,165,0.15)',  icon:'music' },
+      { id:'bass',   label:'Baixo',             cor:'#5B9BD5', bg:'rgba(91,155,213,0.15)',  icon:'music' },
+      { id:'guitar', label:'Guitarra',          cor:'#C8A84B', bg:'rgba(200,168,75,0.15)',  icon:'music' },
+      { id:'piano',  label:'Teclado / Piano',   cor:'#9B8EC4', bg:'rgba(155,142,196,0.15)', icon:'music' },
     ],
     'vocal-remover': [
-      { id:'vocals',         label:'Vocal',        cor:'#D85A30', bg:'rgba(216,90,48,0.15)',  icon:'mic'   },
-      { id:'accompaniment',  label:'Instrumental', cor:'#6BBF6A', bg:'rgba(107,191,106,0.15)',icon:'music' },
+      { id:'vocals',         label:'Vocal',        cor:'#D85A30', bg:'rgba(216,90,48,0.15)',   icon:'mic'   },
+      { id:'accompaniment',  label:'Instrumental', cor:'#6BBF6A', bg:'rgba(107,191,106,0.15)', icon:'music' },
     ],
   };
+  const stemsDemo = STEMS_POR_WORKFLOW[workflow] || STEMS_POR_WORKFLOW['stems-5'];
 
-  const stemsAtivos = STEMS_POR_WORKFLOW[workflow] || STEMS_POR_WORKFLOW['stems-5'];
-
-  // Cálculo de semitons
   const TONS_ORD = ['Dó','Dó#','Ré','Ré#','Mi','Fá','Fá#','Sol','Sol#','Lá','Lá#','Si'];
   const calcSemitons = (de, para) => {
     let d = TONS_ORD.indexOf(para) - TONS_ORD.indexOf(de);
-    if (d > 6) d -= 12;
-    if (d < -6) d += 12;
+    if (d > 6) d -= 12; if (d < -6) d += 12;
     return d;
   };
   const semitons = calcSemitons(tomOrig, tomDest);
 
-  // Simula processamento progressivo
+  // ── Modo demo ────────────────────────────────────────────────
   const simularProcessamento = (file) => {
-    setUploaded(file);
-    setStatus('uploading');
-    setProgress(0);
+    setUploaded(file); setStatus('uploading'); setProgress(0); setErrMsg('');
     let p = 0;
-
-    // Fase 1: upload (0→30% em 1.2s)
     timerRef.current = setInterval(() => {
-      p += 5;
-      setProgress(p);
+      p += 5; setProgress(p);
       if (p >= 30) {
         clearInterval(timerRef.current);
         setStatus('processing');
-        // Fase 2: processamento IA (30→100% em 4s)
         timerRef.current = setInterval(() => {
-          p += 2;
-          setProgress(Math.min(p, 99));
-          if (p >= 100) {
-            clearInterval(timerRef.current);
-            setProgress(100);
-            setStatus('done');
-          }
+          p += 2; setProgress(Math.min(p, 99));
+          if (p >= 100) { clearInterval(timerRef.current); setProgress(100); setStatus('done'); setFaixas([]); }
         }, 80);
       }
     }, 200);
   };
 
+  // ── Modo real Lalal ──────────────────────────────────────────
+  const processarLalal = async (file) => {
+    setUploaded(file); setStatus('uploading'); setProgress(10); setErrMsg(''); setFaixas([]);
+
+    try {
+      // 1. Upload para Supabase Storage
+      const nomeArq = `studio/${Date.now()}_${file.name.replace(/\s+/g,'_')}`;
+      const upRes = await fetch(`${SUPABASE_URL}/storage/v1/object/harpa-audio/${nomeArq}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': file.type||'audio/mpeg', 'x-upsert':'true' },
+        body: file,
+      });
+      if (!upRes.ok) throw new Error('Falha no upload do arquivo');
+      const audioUrl = `${SUPABASE_URL}/storage/v1/object/public/harpa-audio/${nomeArq}`;
+      setProgress(30);
+
+      // 2. Cria job no Lalal via Edge Function
+      const jobRes = await fetch(`${LALAL_FN}?action=upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audioUrl, workflow, jobName: file.name }),
+      });
+      const jobData = await jobRes.json();
+      if (jobData.error) throw new Error(jobData.error);
+
+      setJobId(jobData.jobId);
+      setStatus('processing');
+      setProgress(35);
+
+      // 3. Polling a cada 5 segundos
+      pollRef.current = setInterval(async () => {
+        try {
+          const stRes = await fetch(`${LALAL_FN}?action=status&jobId=${jobData.jobId}`, {
+            headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
+          });
+          const st = await stRes.json();
+          if (st.progress) setProgress(35 + Math.round(st.progress * 0.6));
+
+          if (st.status === 'SUCCEEDED') {
+            clearInterval(pollRef.current);
+            const dlRes = await fetch(`${LALAL_FN}?action=download&jobId=${jobData.jobId}`, {
+              headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
+            });
+            const dl = await dlRes.json();
+            setFaixas(dl.faixas || []);
+            const defaultVols = {};
+            (dl.faixas||[]).forEach(f => { defaultVols[f.id] = 80; });
+            setVols(defaultVols);
+            setProgress(100); setStatus('done');
+          } else if (st.status === 'FAILED') {
+            clearInterval(pollRef.current);
+            setErrMsg('Falha no processamento. Tente novamente.');
+            setStatus('error');
+          }
+        } catch(e) { clearInterval(pollRef.current); setErrMsg(e.message); setStatus('error'); }
+      }, 5000);
+
+    } catch(e) { setErrMsg(e.message); setStatus('error'); }
+  };
+
+  useEffect(() => () => { clearInterval(timerRef.current); clearInterval(pollRef.current); }, []);
+
   const handleFile = (file) => {
-    if (moisesAtivo) {
-      showToast('Modo API ativo — processamento real em breve!');
-      return;
-    }
-    simularProcessamento(file);
+    if (lalalAtivo) processarLalal(file);
+    else simularProcessamento(file);
   };
 
   const resetar = () => {
-    clearInterval(timerRef.current);
-    setUploaded(null);
-    setStatus('idle');
-    setProgress(0);
-    setMutes({});
+    clearInterval(timerRef.current); clearInterval(pollRef.current);
+    setUploaded(null); setJobId(null); setStatus('idle');
+    setProgress(0); setMutes({}); setFaixas([]); setErrMsg('');
   };
 
   const toggleMute = id => setMutes(m => ({...m,[id]:!m[id]}));
+
+  const baixarFaixa = (faixa) => {
+    if (faixa.url) {
+      const a = document.createElement('a');
+      a.href = faixa.url; a.download = `${faixa.label}.wav`; a.target = '_blank';
+      a.click();
+    } else showToast(`"${faixa.label}" — disponível após integração com Lalal.ai`);
+  };
+
+  // Stems para exibir — usa resultado real se disponível, senão usa demo
+  const stemsExibir = status==='done' && faixas.length > 0
+    ? faixas.map(f => ({
+        id: f.id, label: f.label, url: f.url,
+        cor: stemsDemo.find(s=>s.id===f.id)?.cor || '#C8A84B',
+        bg:  stemsDemo.find(s=>s.id===f.id)?.bg  || 'rgba(200,168,75,0.15)',
+        icon: 'music'
+      }))
+    : stemsDemo;
 
   const baixarFaixa = (stem) => {
     showToast(`"${stem.label}" — disponível após integração com Moises.ai`);
   };
 
-  const baixarTodas = () => {
-    showToast('Download de todas as faixas — disponível após integração com Moises.ai');
-  };
 
   const exportarTransposicao = () => {
     if (tomOrig === tomDest) { showToast('Selecione um tom destino diferente.'); return; }
@@ -2150,27 +2208,27 @@ function PageStudio() {
 
       {/* Banner modo demo */}
       <div style={{
-        background: moisesAtivo ? 'var(--teal-bg)' : 'rgba(200,168,75,0.08)',
-        border: `0.5px solid ${moisesAtivo ? 'rgba(93,202,165,0.4)' : 'rgba(200,168,75,0.3)'}`,
+        background: lalalAtivo ? 'var(--teal-bg)' : 'rgba(200,168,75,0.08)',
+        border: `0.5px solid ${lalalAtivo ? 'rgba(93,202,165,0.4)' : 'rgba(200,168,75,0.3)'}`,
         borderRadius:'var(--r)', padding:'12px 16px', marginBottom:16,
         display:'flex', alignItems:'center', justifyContent:'space-between', gap:12,
       }}>
         <div style={{display:'flex',alignItems:'flex-start',gap:10}}>
-          <Icon name={moisesAtivo?'check':'info'} size={16} style={{color:moisesAtivo?'var(--teal)':'var(--gold)',flexShrink:0,marginTop:1}}/>
+          <Icon name={lalalAtivo?'check':'info'} size={16} style={{color:lalalAtivo?'var(--teal)':'var(--gold)',flexShrink:0,marginTop:1}}/>
           <div>
-            <div style={{fontSize:13,fontWeight:600,color:moisesAtivo?'var(--teal)':'var(--gold)'}}>
-              {moisesAtivo ? 'Moises.ai conectado' : 'Modo demonstração'}
+            <div style={{fontSize:13,fontWeight:600,color:lalalAtivo?'var(--teal)':'var(--gold)'}}>
+              {lalalAtivo ? 'Lalal.ai conectado' : 'Modo demonstração'}
             </div>
             <div style={{fontSize:11,color:'var(--text2)',marginTop:2}}>
-              {moisesAtivo
-                ? 'Separação real de faixas ativa via Supabase Edge Function.'
-                : 'Interface completa e funcional. Aguardando aprovação da API Key do Moises.ai — quando chegar, é só ativar aqui.'}
+              {lalalAtivo
+                ? 'Separação real de faixas ativa via Lalal.ai.'
+                : 'Interface completa e funcional. Configure a API Key do Lalal.ai em Configurações para ativar.'}
             </div>
           </div>
         </div>
-        {!moisesAtivo && (
-          <button className="btn btn-ghost btn-sm" style={{flexShrink:0}} onClick={()=>{ setMoisesAtivo(true); showToast('Modo API ativado! Configure a chave em Configurações.'); }}>
-            Ativar API
+        {!lalalAtivo && (
+          <button className="btn btn-ghost btn-sm" style={{flexShrink:0}} onClick={()=>{ setLalalAtivo(true); showToast('Modo Lalal.ai ativado!'); }}>
+            Ativar Lalal.ai
           </button>
         )}
       </div>
@@ -2257,9 +2315,9 @@ function PageStudio() {
             {status==='done' && (
               <>
                 <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:12}}>
-                  Faixas separadas — {stemsAtivos.length} pistas
+                  Faixas separadas — {stemsExibir.length} pistas
                 </div>
-                {stemsAtivos.map(stem => {
+                {stemsExibir.map(stem => {
                   const vol = vols[stem.id] ?? 80;
                   const mutado = !!mutes[stem.id];
                   return (
@@ -2291,7 +2349,7 @@ function PageStudio() {
                     </div>
                   );
                 })}
-                <button className="btn btn-gold" style={{width:'100%',justifyContent:'center',marginTop:14}} onClick={baixarTodas}>
+                <button className="btn btn-gold" style={{width:'100%',justifyContent:'center',marginTop:14}} onClick={()=>stemsExibir.forEach(s=>baixarFaixa(s))}>
                   <Icon name="download"/>Baixar todas as faixas
                 </button>
               </>
@@ -2381,7 +2439,7 @@ function PageConfig({ membros }) {
       // Salva via Edge Function (a key vai para os secrets do Supabase via CLI)
       // Aqui apenas confirmamos visualmente — o deploy da secret é feito via CLI
       await new Promise(r => setTimeout(r, 800));
-      showToast('Cole a chave no terminal: supabase secrets set MOISES_API_KEY=' + moisesKey.slice(0,8) + '...');
+      showToast('Cole a chave no terminal: supabase secrets set LALAL_API_KEY=' + moisesKey.slice(0,8) + '...');
       setMoisesKey('');
     } finally {
       setSalvandoKey(false);
@@ -2460,7 +2518,7 @@ function PageConfig({ membros }) {
           <div style={{marginBottom:14}}>
             <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:4}}>Status da Edge Function</div>
             <div style={{fontSize:12,color:'var(--text2)',marginBottom:10}}>
-              A API Key do Moises fica protegida nos secrets do Supabase — nunca exposta no navegador.
+              A API Key do Lalal fica protegida nos secrets do Supabase — nunca exposta no navegador.
             </div>
             <div style={{display:'flex',gap:8}}>
               <button className="btn btn-ghost" onClick={testarStudio} disabled={testando}>
@@ -2476,12 +2534,12 @@ function PageConfig({ membros }) {
           </div>
           <div style={{background:'var(--dark3)',borderRadius:8,padding:'12px',fontSize:12,color:'var(--text2)',marginBottom:12,fontFamily:'monospace',lineHeight:1.8}}>
             <span style={{color:'var(--text3)'}}>// Execute no terminal:</span><br/>
-            <span style={{color:'var(--teal)'}}>supabase</span> secrets set MOISES_API_KEY=<span style={{color:'var(--gold)'}}>sua_chave_aqui</span><br/>
+            <span style={{color:'var(--teal)'}}>supabase</span> secrets set LALAL_API_KEY=<span style={{color:'var(--gold)'}}>sua_chave_aqui</span><br/>
             <span style={{color:'var(--teal)'}}>supabase</span> functions deploy moises
           </div>
 
           <div style={{fontSize:11,color:'var(--text3)'}}>
-            Obtenha sua chave em <strong style={{color:'var(--text2)'}}>developer-api.moises.ai</strong>
+            Obtenha sua chave em <strong style={{color:'var(--text2)'}}>lalal.ai/api</strong>
           </div>
         </div>
       </div>
