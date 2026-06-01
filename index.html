@@ -263,8 +263,8 @@
 
     .sidebar {
       width: 100% !important;
-      height: 64px;
-      min-height: 64px;
+      height: 58px;
+      min-height: 58px;
       flex-direction: row;
       order: 2;
       border-right: none;
@@ -1293,9 +1293,17 @@ function PageEscalas({ escalas, setEscalas, salvarEscala, excluirEscala, atualiz
   };
 
   const dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-  const calDays = mesCal === 6
-    ? [...[29,30].map(d=>({d,other:true})), ...Array.from({length:30},(_,i)=>({d:i+1,other:false}))]
-    : [...[29,30].map(d=>({d,other:true})), ...Array.from({length:31},(_,i)=>({d:i+1,other:false}))];
+  const calDays = (() => {
+    const ano = 2026;
+    const diasNoMes = mesCal === 6 ? 30 : 31;
+    const primeiroDia = new Date(ano, mesCal - 1, 1).getDay(); // 0=Dom
+    const vazios = Array.from({length: primeiroDia}, (_, i) => {
+      const d = new Date(ano, mesCal - 1, 1 - (primeiroDia - i));
+      return { d: d.getDate(), other: true };
+    });
+    const diasArr = Array.from({length: diasNoMes}, (_, i) => ({ d: i + 1, other: false }));
+    return [...vazios, ...diasArr];
+  })();
   const hasEscala = d => escalas.some(e=>{const p=e.data.split('/');return parseInt(p[0])===d&&parseInt(p[1])===mesCal;});
   const isCeia = d => escalas.some(e=>{const p=e.data.split('/');return parseInt(p[0])===d&&parseInt(p[1])===mesCal&&e.ceia;});
 
@@ -1311,20 +1319,16 @@ function PageEscalas({ escalas, setEscalas, salvarEscala, excluirEscala, atualiz
     return partes.filter(Boolean).join(', ');
   };
 
-  const gerarNotificacao = async (tipo, payload, escala) => {
-    let titulo, corpo;
-    if (tipo === 'tom') {
-      titulo = `Tom alterado — ${escala.data}`;
-      corpo = `"${payload.musica}" teve o tom alterado: ${payload.de} → ${payload.para}. Culto: ${escala.culto}.`;
-    } else if (tipo === 'musica_add') {
-      titulo = `Música adicionada — ${escala.data}`;
-      corpo = `"${payload.musica}" (tom: ${payload.tom}) foi adicionada ao repertório do ${escala.dia}.`;
-    } else if (tipo === 'musica_remove') {
-      titulo = `Música removida — ${escala.data}`;
-      corpo = `"${payload.musica}" foi removida do repertório do ${escala.dia}.`;
+  const notificarRepertorio = async (escala, repertorio) => {
+    if (!repertorio?.length) {
+      showToast('Adicione músicas ao repertório antes de notificar.');
+      return;
     }
-    await salvarAviso({ titulo, corpo, tipo:'alerta', destinatario:'todos', autor: usuario?.nome||'' });
-    showToast('Notificação enviada para a equipe!');
+    const lista = repertorio.map((m,i) => `${i+1}. ${m.nome} (${m.tom})`).join(' · ');
+    const titulo = `Repertório atualizado — ${escala.dia} ${escala.data}`;
+    const corpo = `Culto: ${escala.culto}. Músicas: ${lista}`;
+    await salvarAviso({ titulo, corpo, tipo:'info', destinatario:'todos', autor: usuario?.nome||'' });
+    showToast('Repertório enviado para a equipe!');
   };
 
   const adicionarMusica = async musica => {
@@ -1333,21 +1337,20 @@ function PageEscalas({ escalas, setEscalas, salvarEscala, excluirEscala, atualiz
     await atualizarRepertorio(selAtual.id, novoRep);
     setModalMusica(false);
     setMusicaBusca('');
-    gerarNotificacao('musica_add', { musica: musica.nome, tom: musica.tom }, selAtual);
+    showToast(`"${musica.nome}" adicionada!`);
   };
 
   const removerMusica = async entrada => {
     const novoRep = (selAtual.repertorio||[]).filter(r=>r.id!==entrada.id);
     await atualizarRepertorio(selAtual.id, novoRep);
-    gerarNotificacao('musica_remove', { musica: entrada.nome }, selAtual);
+    showToast(`"${entrada.nome}" removida.`);
   };
 
   const alterarTom = async (entrada, novoTom) => {
-    const tomAnterior = entrada.tom;
     const novoRep = (selAtual.repertorio||[]).map(r=>r.id===entrada.id?{...r,tom:novoTom}:r);
     await atualizarRepertorio(selAtual.id, novoRep);
     setEditTom(null);
-    if (tomAnterior !== novoTom) gerarNotificacao('tom', { musica: entrada.nome, de: tomAnterior, para: novoTom }, selAtual);
+    showToast(`Tom alterado para ${novoTom}.`);
   };
 
   const musicasBusca = musicas.filter(m =>
@@ -1526,6 +1529,11 @@ function PageEscalas({ escalas, setEscalas, salvarEscala, excluirEscala, atualiz
                 <button className="btn btn-gold" style={{width:'100%',justifyContent:'center',marginTop:12}} onClick={()=>setModalMusica(true)}>
                   <Icon name="plus"/>Adicionar música
                 </button>
+                {repertorioAtual.length > 0 && (
+                  <button className="btn btn-ghost" style={{width:'100%',justifyContent:'center',marginTop:8}} onClick={()=>notificarRepertorio(selAtual, repertorioAtual)}>
+                    <Icon name="send"/>Notificar equipe com repertório
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -2011,6 +2019,8 @@ function PageMusicas({ musicas, setMusicas, salvarMusica, excluirMusica, onPlay,
 const SUPABASE_URL = "https://jcecdvaqnlxkwutcdllk.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_K1nv-ioy4He64HuTL0CgYg_VunB-FpT";
 const YOUTUBE_API_KEY = "AIzaSyCxz7et9w1IMhOW-mYQ8Ab-wmx1ch1blM0";
+const VAPID_PUBLIC_KEY = "BC-sVXVrWoM5nmMCKM3PSlrYngl3Nwa9aKXgloKsmubDigxW_7s0IfMMpBkOySdlGSFZhI7EoX6G5Mh738p3hj0";
+const PUSH_FN = `${SUPABASE_URL}/functions/v1/push`;
 
 const MOISES_FN = SUPABASE_URL
   ? `${SUPABASE_URL}/functions/v1/moises`
@@ -2647,7 +2657,56 @@ function App() {
     return () => clearInterval(t);
   }, [playing]);
 
-  // ── CRUD com Supabase ─────────────────────────────────────────
+  // ── Push Notifications ────────────────────────────────────────
+  const registrarPush = async (nomeUsuario) => {
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      const permissao = await Notification.requestPermission();
+      if (permissao !== 'granted') return;
+
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: VAPID_PUBLIC_KEY,
+      });
+
+      const subJson = sub.toJSON();
+      // Salva no Supabase
+      await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions`, {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=ignore-duplicates',
+        },
+        body: JSON.stringify({
+          membro_nome: nomeUsuario,
+          endpoint: subJson.endpoint,
+          p256dh: subJson.keys?.p256dh,
+          auth: subJson.keys?.auth,
+        }),
+      });
+      console.log('Push registrado para', nomeUsuario);
+    } catch(e) {
+      console.warn('Push não disponível:', e.message);
+    }
+  };
+
+  const enviarPushNotificacao = async (titulo, corpo, destinatario = 'todos') => {
+    try {
+      await fetch(PUSH_FN, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ titulo, corpo, destinatario }),
+      });
+    } catch(e) {
+      console.warn('Erro ao enviar push:', e.message);
+    }
+  };
   const salvarMembro = async (m) => {
     try {
       if (m.id && m.id < 100000) { await sb.update('membros',m.id,appToDb.membro(m)); setMembros(ms=>ms.map(x=>x.id===m.id?m:x)); }
@@ -2690,8 +2749,16 @@ function App() {
 
   const salvarAviso = async (a) => {
     try {
-      if (a.id && a.id < 100000) { await sb.update('avisos',a.id,appToDb.aviso(a)); setAvisos(as=>as.map(x=>x.id===a.id?{...x,...a}:x)); }
-      else { const r=await sb.insert('avisos',appToDb.aviso(a)); a={...a,id:r.id,lido:false,data:'Agora'}; setAvisos(as=>[a,...as]); }
+      if (a.id && a.id < 100000) {
+        await sb.update('avisos',a.id,appToDb.aviso(a));
+        setAvisos(as=>as.map(x=>x.id===a.id?{...x,...a}:x));
+      } else {
+        const r=await sb.insert('avisos',appToDb.aviso(a));
+        a={...a,id:r.id,lido:false,data:'Agora'};
+        setAvisos(as=>[a,...as]);
+        // Dispara push para os destinatários
+        enviarPushNotificacao(a.titulo, a.corpo, a.destinatario);
+      }
     } catch(e) { alert('Erro ao salvar aviso: '+e.message); }
     return a;
   };
@@ -2710,7 +2777,10 @@ function App() {
     </div>
   );
 
-  if (!usuario) return <TelaLogin membros={membros} onLogin={setUsuario}/>;
+  if (!usuario) return <TelaLogin membros={membros} onLogin={(u) => {
+    setUsuario(u);
+    registrarPush(u.nome);
+  }}/>;
   const isAdmin    = usuario.acesso === 'admin';
   const isMinistro = usuario.acesso === 'admin' || usuario.acesso === 'ministro';
 
@@ -2721,15 +2791,17 @@ function App() {
 
   const naoLidos = avisosVisiveis.filter(a=>!a.lido).length;
 
+  const isMobile = window.innerWidth <= 680;
+
   const navItems = [
-    { id:'dashboard', label:'Dashboard',     icon:'dashboard', section:'geral' },
-    { id:'avisos',    label:'Avisos',         icon:'bell',      section:'geral', badge: naoLidos>0?naoLidos:null },
-    { id:'ministros', label:'Ministros',      icon:'users',     section:'ministerio' },
-    { id:'escalas',   label:'Escalas',        icon:'calendar',  section:'ministerio' },
-    { id:'musicas',   label:'Músicas',        icon:'music',     section:'repertorio' },
-    { id:'studio',    label:'Studio ✦',       icon:'mic',       section:'repertorio' },
-    ...(isAdmin ? [{ id:'config', label:'Configurações', icon:'settings', section:'config' }] : []),
-  ];
+    { id:'dashboard', label:'Início',    icon:'dashboard', section:'geral' },
+    { id:'avisos',    label:'Avisos',    icon:'bell',      section:'geral', badge: naoLidos>0?naoLidos:null },
+    { id:'escalas',   label:'Escalas',  icon:'calendar',  section:'ministerio' },
+    { id:'musicas',   label:'Músicas',  icon:'music',     section:'repertorio' },
+    { id:'studio',    label:'Studio',   icon:'mic',       section:'repertorio' },
+    { id:'ministros', label:'Membros',  icon:'users',     section:'ministerio', mobileHide: true },
+    ...(isAdmin ? [{ id:'config', label:'Config', icon:'settings', section:'config', mobileHide: true }] : []),
+  ].filter(item => !(isMobile && item.mobileHide));
 
   const sections = [
     { id:'geral',       label:'Geral' },
@@ -2767,22 +2839,38 @@ function App() {
           </div>
         </div>
         <div className="sidebar-nav">
-          {sections.map(sec => {
-            const items = navItems.filter(n=>n.section===sec.id);
-            if(!items.length) return null;
-            return (
-              <div key={sec.id}>
-                <div className="nav-section-label">{sec.label}</div>
-                {items.map(item => (
-                  <button key={item.id} className={`nav-item ${page===item.id?'active':''}`} onClick={()=>setPage(item.id)}>
-                    <Icon name={item.icon}/>
-                    <span style={{flex:1}}>{item.label}</span>
-                    {item.badge && <span className="nav-badge">{item.badge}</span>}
-                  </button>
-                ))}
-              </div>
-            );
-          })}
+          {isMobile ? (
+            // Mobile: flat, sem seções
+            navItems.map(item => (
+              <button key={item.id}
+                className={`nav-item ${page===item.id?'active':''}`}
+                onClick={()=>setPage(item.id)}
+                style={{position:'relative'}}
+              >
+                <Icon name={item.icon} size={20}/>
+                <span>{item.label}</span>
+                {item.badge && <span className="nav-badge">{item.badge}</span>}
+              </button>
+            ))
+          ) : (
+            // Desktop: com seções
+            sections.map(sec => {
+              const items = navItems.filter(n=>n.section===sec.id);
+              if(!items.length) return null;
+              return (
+                <div key={sec.id}>
+                  <div className="nav-section-label">{sec.label}</div>
+                  {items.map(item => (
+                    <button key={item.id} className={`nav-item ${page===item.id?'active':''}`} onClick={()=>setPage(item.id)}>
+                      <Icon name={item.icon}/>
+                      <span style={{flex:1}}>{item.label}</span>
+                      {item.badge && <span className="nav-badge">{item.badge}</span>}
+                    </button>
+                  ))}
+                </div>
+              );
+            })
+          )}
         </div>
         <div className="sidebar-footer">
           <div className="user-row">
