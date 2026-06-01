@@ -2192,11 +2192,6 @@ function PageStudio() {
       }))
     : stemsDemo;
 
-  const baixarFaixa = (stem) => {
-    showToast(`"${stem.label}" — disponível após integração com Moises.ai`);
-  };
-
-
   const exportarTransposicao = () => {
     if (tomOrig === tomDest) { showToast('Selecione um tom destino diferente.'); return; }
     showToast(`Transposição ${tomOrig} → ${tomDest} (${semitons > 0 ? '+' : ''}${semitons} semitons) — disponível após integração`);
