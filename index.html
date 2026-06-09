@@ -980,7 +980,7 @@ function PageDashboard({ membros, escalas, musicas, avisos, onPage, usuario, onP
   );
 }
 
-function PageAvisos({ avisos, setAvisos, salvarAviso, excluirAviso, usuario, membros }) {
+function PageAvisos({ avisos, setAvisos, salvarAviso, excluirAviso, usuario, membros, onPage }) {
   const [modal, setModal] = useState(false);
   const [editando, setEditando] = useState(null);
   const [form, setForm] = useState({ titulo:'', corpo:'', tipo:'info', destinatario:'todos' });
@@ -1055,6 +1055,16 @@ function PageAvisos({ avisos, setAvisos, salvarAviso, excluirAviso, usuario, mem
                   <div style={{fontSize:11,color:'var(--text3)',marginTop:4}}>
                     Para: <strong style={{color:'var(--text2)'}}>{a.destinatario}</strong>
                   </div>
+                )}
+                {/* Link clicável para a seção */}
+                {a.link && onPage && (
+                  <button
+                    onClick={()=>{ marcarLido(a.id); onPage(a.link); }}
+                    style={{display:'inline-flex',alignItems:'center',gap:5,marginTop:8,background:'var(--gold-bg)',border:'0.5px solid rgba(200,168,75,0.3)',borderRadius:6,padding:'5px 10px',cursor:'pointer',fontSize:12,color:'var(--gold)',fontWeight:500}}
+                  >
+                    <Icon name="calendar" size={13}/>
+                    {a.link_label || 'Ver detalhes'} →
+                  </button>
                 )}
                 <div style={{display:'flex',gap:8,marginTop:10,flexWrap:'wrap'}}>
                   {!a.lido && (
@@ -1320,14 +1330,16 @@ function PageEscalas({ escalas, setEscalas, salvarEscala, excluirEscala, atualiz
   };
 
   const notificarRepertorio = async (escala, repertorio) => {
-    if (!repertorio?.length) {
-      showToast('Adicione músicas ao repertório antes de notificar.');
-      return;
-    }
+    if (!repertorio?.length) { showToast('Adicione músicas ao repertório antes de notificar.'); return; }
     const lista = repertorio.map((m,i) => `${i+1}. ${m.nome} (${m.tom})`).join(' · ');
     const titulo = `Repertório atualizado — ${escala.dia} ${escala.data}`;
     const corpo = `Culto: ${escala.culto}. Músicas: ${lista}`;
-    await salvarAviso({ titulo, corpo, tipo:'info', destinatario:'todos', autor: usuario?.nome||'' });
+    await salvarAviso({
+      titulo, corpo, tipo:'info', destinatario:'todos', autor: usuario?.nome||'',
+      link: 'escalas',           // página de destino
+      link_id: String(escala.id), // ID da escala para selecionar
+      link_label: `Ver escala — ${escala.data}`,
+    });
     showToast('Repertório enviado para a equipe!');
   };
 
@@ -2614,13 +2626,13 @@ const dbToApp = {
     };
   },
   musica: r => ({ id:r.id, nome:r.nome, artista:r.artista||'', tom:r.tom||'Ré', bpm:r.bpm||0, youtubeId:r.youtube_id||'', capa:r.capa||'' }),
-  aviso:  r => ({ id:r.id, titulo:r.titulo, corpo:r.corpo||'', tipo:r.tipo||'info', destinatario:r.destinatario||'todos', autor:r.autor||'', lido:false, data: new Date(r.criado_em).toLocaleDateString('pt-BR') }),
+  aviso:  r => ({ id:r.id, titulo:r.titulo, corpo:r.corpo||'', tipo:r.tipo||'info', destinatario:r.destinatario||'todos', autor:r.autor||'', lido:false, data: new Date(r.criado_em).toLocaleDateString('pt-BR'), link:r.link||null, link_id:r.link_id||null, link_label:r.link_label||null }),
 };
 const appToDb = {
   membro: m => ({ nome:m.nome, papel:m.papel, funcoes:m.funcoes, cor:m.cor, tipo:m.tipo, pin:m.pin, acesso:m.acesso }),
   escala: e => ({ data:e.data, dia:e.dia, culto:e.culto, ceia:e.ceia, ministerio:e.ministerio, vocal:e.vocal, musicos:e.musicos, repertorio:e.repertorio }),
   musica: m => ({ nome:m.nome, artista:m.artista, tom:m.tom, bpm:m.bpm||null, youtube_id:m.youtubeId||null, capa:m.capa||null }),
-  aviso:  a => ({ titulo:a.titulo, corpo:a.corpo, tipo:a.tipo, destinatario:a.destinatario, autor:a.autor||null }),
+  aviso:  a => ({ titulo:a.titulo, corpo:a.corpo, tipo:a.tipo, destinatario:a.destinatario, autor:a.autor||null, link:a.link||null, link_id:a.link_id||null, link_label:a.link_label||null }),
 };
 
 function App() {
@@ -2961,7 +2973,7 @@ function App() {
 
         <div className="page-content">
           {page==='dashboard' && <PageDashboard membros={membros} escalas={escalas} musicas={musicas} avisos={avisosVisiveis} onPage={setPage} usuario={usuario} onPlayMusica={setPlayerMusica}/>}
-          {page==='avisos'    && <PageAvisos avisos={avisosVisiveis} setAvisos={setAvisos} salvarAviso={salvarAviso} excluirAviso={excluirAviso} usuario={usuario} membros={membros}/>}
+          {page==='avisos'    && <PageAvisos avisos={avisosVisiveis} setAvisos={setAvisos} salvarAviso={salvarAviso} excluirAviso={excluirAviso} usuario={usuario} membros={membros} onPage={setPage}/>}
           {page==='ministros' && <PageMinistros membros={membros} setMembros={setMembros} salvarMembro={salvarMembro} excluirMembro={excluirMembro} usuario={usuario}/>}
           {page==='escalas'   && <PageEscalas escalas={escalas} setEscalas={setEscalas} salvarEscala={salvarEscala} excluirEscala={excluirEscala} atualizarRepertorio={atualizarRepertorioEscala} membros={membros} musicas={musicas} avisos={avisos} setAvisos={setAvisos} salvarAviso={salvarAviso} usuario={usuario} onPlayMusica={setPlayerMusica}/>}
           {page==='musicas'   && <PageMusicas musicas={musicas} setMusicas={setMusicas} salvarMusica={salvarMusica} excluirMusica={excluirMusica} onPlay={m=>{setCurrentTrack(m);setPlaying(true);}} onPlayMusica={setPlayerMusica} usuario={usuario}/>}
