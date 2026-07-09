@@ -183,7 +183,12 @@ select.inp option{background:var(--bg2)}
 .stem-btn svg{width:14px;height:14px}
 .stem-btn.muted{background:rgba(224,85,85,0.15);color:var(--red)}
 
-/* ── Player fixo ── */
+/* ── Player embutido ── */
+.player-embed{position:fixed;bottom:var(--nav-h);left:0;right:0;background:var(--bg2);border-top:1px solid var(--bg3);z-index:15}
+.player-embed-header{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer}
+.player-embed-video{width:100%;aspect-ratio:16/9;display:block;border:none}
+.player-embed-collapsed{height:60px}
+@media(min-width:680px){.player-embed{left:220px}}
 .player-bar{position:fixed;bottom:var(--nav-h);left:0;right:0;background:rgba(22,22,22,0.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--bg3);padding:10px 16px;display:flex;align-items:center;gap:12px;z-index:15}
 .player-thumb{width:40px;height:40px;border-radius:8px;background:var(--bg3);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center}
 .player-info{flex:1;min-width:0}
@@ -233,6 +238,34 @@ select.inp option{background:var(--bg2)}
   .sidebar-desktop{display:none}
   .stats-grid{grid-template-columns:1fr 1fr}
 }
+
+/* ── Confirmação presença ── */
+.conf-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bg3)}
+.conf-row:last-child{border:none}
+.conf-btn{padding:5px 12px;border-radius:50px;font-size:12px;font-weight:600;border:1px solid var(--bg4);background:var(--bg3);color:var(--text3);cursor:pointer;transition:all 0.12s}
+.conf-btn.yes{background:rgba(92,184,92,0.15);color:var(--green);border-color:rgba(92,184,92,0.3)}
+.conf-btn.no{background:rgba(224,85,85,0.12);color:var(--red);border-color:rgba(224,85,85,0.3)}
+.conf-btn:hover{opacity:0.8}
+
+/* ── Modo ensaio ── */
+.ensaio-overlay{position:fixed;inset:0;background:#000;z-index:200;display:flex;flex-direction:column;overflow:hidden}
+.ensaio-header{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,0.9);flex-shrink:0}
+.ensaio-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center}
+.ensaio-nav{padding:16px 20px;display:flex;align-items:center;justify-content:center;gap:16px;background:rgba(0,0,0,0.9);flex-shrink:0}
+.ensaio-nav button{width:56px;height:56px;border-radius:50%;border:none;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* ── Capotraste ── */
+.capo-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(91,142,230,0.12);color:var(--blue);padding:3px 10px;border-radius:50px;font-size:11px;font-weight:600}
+
+/* ── Observações ── */
+.obs-area{width:100%;background:var(--bg3);border:1px solid var(--bg4);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--text);outline:none;resize:vertical;min-height:60px;font-family:inherit}
+.obs-area:focus{border-color:var(--gold)}
+.obs-area::placeholder{color:var(--text3)}
+
+/* ── Reorder ── */
+.reorder-btn{width:24px;height:24px;border-radius:6px;background:var(--bg3);border:1px solid var(--bg4);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3);font-size:14px;flex-shrink:0}
+.reorder-btn:hover{background:var(--bg4);color:var(--text)}
+
 </style>
 </head>
 <body>
@@ -391,16 +424,26 @@ const fromDb = {
     let m=r.musicos||{},rp=r.repertorio||[];
     if(typeof m==='string')try{m=JSON.parse(m)}catch{m={}}
     if(typeof rp==='string')try{rp=JSON.parse(rp)}catch{rp=[]}
-    return {id:r.id,data:r.data||'',dia:r.dia||'',culto:r.culto||'',ceia:!!r.ceia,ministerio:r.ministerio||'',vocal:r.vocal||'',musicos:m,repertorio:rp};
+    return {id:r.id,data:r.data||'',dia:r.dia||'',culto:r.culto||'',ceia:!!r.ceia,ministerio:r.ministerio||'',vocal:r.vocal||'',musicos:m,repertorio:rp,observacoes:r.observacoes||'',confirmacoes:r.confirmacoes||{}};
   },
-  musica: r=>({id:r.id,nome:r.nome,artista:r.artista||'',tom:r.tom||'Ré',bpm:r.bpm||0,youtubeId:r.youtube_id||'',capa:r.capa||''}),
+  musica: r=>({id:r.id,nome:r.nome,artista:r.artista||'',tom:r.tom||'Ré',bpm:r.bpm||0,youtubeId:r.youtube_id||'',capa:r.capa||'',cifraUrl:r.cifra_url||''}),
   aviso: r=>({id:r.id,titulo:r.titulo,corpo:r.corpo||'',tipo:r.tipo||'info',destinatario:r.destinatario||'todos',autor:r.autor||'',lido:false,data:new Date(r.criado_em).toLocaleDateString('pt-BR'),link:r.link||null,link_id:r.link_id||null,link_label:r.link_label||null}),
 };
 const toDb = {
   membro: m=>({nome:m.nome,papel:m.papel,funcoes:m.funcoes,cor:m.cor,tipo:m.tipo,pin:m.pin,acesso:m.acesso}),
-  escala: e=>({data:e.data,dia:e.dia,culto:e.culto,ceia:e.ceia,ministerio:e.ministerio,vocal:e.vocal,musicos:e.musicos,repertorio:e.repertorio}),
-  musica: m=>({nome:m.nome,artista:m.artista,tom:m.tom,bpm:m.bpm||null,youtube_id:m.youtubeId||null,capa:m.capa||null}),
+  escala: e=>({data:e.data,dia:e.dia,culto:e.culto,ceia:e.ceia,ministerio:e.ministerio,vocal:e.vocal,musicos:e.musicos,repertorio:e.repertorio,observacoes:e.observacoes||'',confirmacoes:e.confirmacoes||{}}),
+  musica: m=>({nome:m.nome,artista:m.artista,tom:m.tom,bpm:m.bpm||null,youtube_id:m.youtubeId||null,capa:m.capa||null,cifra_url:m.cifraUrl||null}),
   aviso: a=>({titulo:a.titulo,corpo:a.corpo,tipo:a.tipo,destinatario:a.destinatario,autor:a.autor||null,link:a.link||null,link_id:a.link_id||null,link_label:a.link_label||null}),
+};
+
+
+// Calcula capotraste necessário para tocar no tom original usando shapes do tom destino
+const calcCapo = (tomOriginal, tomDestino) => {
+  const idx = t => TONS.indexOf(t);
+  if (idx(tomOriginal) < 0 || idx(tomDestino) < 0) return 0;
+  let diff = idx(tomOriginal) - idx(tomDestino);
+  if (diff < 0) diff += 12;
+  return diff; // 0 = sem capo, 1 = 1ª casa, etc.
 };
 
 /* ─── SVG ICONS ───────────────────────────────── */
@@ -450,37 +493,56 @@ function PlayerYT({musica,onClose}){
   useEffect(()=>{
     if(!musica) return;
     if(musica.youtubeId){setVid(musica.youtubeId);setLoading(false);return;}
-    // Busca ID correto pelo nome + artista
     setLoading(true);
     const q=encodeURIComponent(`${musica.nome} ${musica.artista} oficial`);
     fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${q}&type=video&maxResults=1&key=${YT_KEY}`)
       .then(r=>r.json())
-      .then(d=>{
-        const id=d.items?.[0]?.id?.videoId;
-        if(id) setVid(id);
-      })
+      .then(d=>{const id=d.items?.[0]?.id?.videoId;if(id)setVid(id);})
       .catch(()=>{})
       .finally(()=>setLoading(false));
   },[musica?.id]);
 
   if(!musica) return null;
   return (
-    <div className="player-bar">
-      <div className="player-thumb" style={{background:musica.capa?'transparent':'var(--bg3)'}}>
-        {musica.capa?<img src={musica.capa} alt=""/>:<Ico n="music" s={18} c="var(--text3)"/>}
+    <div style={{
+      position:'fixed',bottom:0,left:0,right:0,zIndex:25,
+      background:'rgba(10,10,10,0.98)',borderTop:'1px solid var(--bg3)',
+    }}>
+      {/* Header */}
+      <div style={{display:'flex',alignItems:'center',gap:12,padding:'10px 16px',borderBottom:'1px solid var(--bg3)'}}>
+        <div style={{width:40,height:40,borderRadius:8,background:'var(--bg3)',flexShrink:0,overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center'}}>
+          {musica.capa?<img src={musica.capa} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<Ico n="music" s={18} c="var(--text3)"/>}
+        </div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:14,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{musica.nome}</div>
+          <div style={{fontSize:12,color:'var(--text3)'}}>{musica.artista} · Tom: {musica.tom}</div>
+        </div>
+        {loading&&<span style={{fontSize:12,color:'var(--text3)',flexShrink:0}}>Buscando...</span>}
+        <button onClick={onClose} style={{width:32,height:32,borderRadius:50,background:'var(--bg3)',display:'flex',alignItems:'center',justifyContent:'center',border:'none',cursor:'pointer',flexShrink:0}}>
+          <Ico n="x" s={16} c="var(--text3)"/>
+        </button>
       </div>
-      <div className="player-info">
-        <div className="player-name">{musica.nome}</div>
-        <div className="player-artist">{musica.artista} · {musica.tom}</div>
-      </div>
+      {/* Iframe YouTube embutido — abre direto */}
       {vid&&!loading&&(
-        <a href={`https://www.youtube.com/watch?v=${vid}`} target="_blank" rel="noreferrer"
-          style={{background:'#FF0000',color:'#fff',padding:'6px 12px',borderRadius:50,fontSize:12,fontWeight:700,textDecoration:'none',flexShrink:0}}>
-          ▶ YT
-        </a>
+        <div style={{position:'relative',paddingBottom:'56.25%',height:0,overflow:'hidden'}}>
+          <iframe
+            src={`https://www.youtube.com/embed/${vid}?autoplay=1&rel=0`}
+            style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}}
+            allow="autoplay; encrypted-media; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
       )}
-      {loading&&<span style={{fontSize:12,color:'var(--text3)',flexShrink:0}}>Buscando...</span>}
-      <button className="player-close" onClick={onClose}><Ico n="x" s={14} c="var(--text3)"/></button>
+      {!vid&&!loading&&(
+        <div style={{padding:'20px',textAlign:'center',color:'var(--text3)',fontSize:13}}>
+          Vídeo não encontrado.
+          <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(musica.nome+' '+musica.artista)}`}
+            target="_blank" rel="noreferrer"
+            style={{color:'var(--gold)',marginLeft:8,fontSize:12}}>
+            Buscar no YouTube ↗
+          </a>
+        </div>
+      )}
     </div>
   );
 }
@@ -572,18 +634,36 @@ function TelaLogin({membros,onLogin}){
 }
 
 /* ─── DASHBOARD ───────────────────────────────── */
-function Dashboard({usuario,escalas,musicas,avisos,onPage,onPlay}){
+function Dashboard({usuario,escalas,musicas,avisos,onPage,onPlay,atualizarRep}){
   const minhasEscalas=escalasDoUsuario(usuario.nome,escalas);
   const proxMinha=minhasEscalas[0]||null;
   const minhaFuncao=proxMinha?funcaoNaEscala(usuario.nome,proxMinha):null;
   const proxGeral=proxEscalaGeral(escalas);
   const naoLidos=avisos.filter(a=>!a.lido).length;
   const hora=new Date().getHours();
-  const saud=hora<12?'Bom dia':hora<18?'Boa tarde':'Boa noite';
   const rep=proxMinha?.repertorio||[];
+  const isMin=usuario.acesso==='admin'||usuario.acesso==='ministro';
+  const [modalAdd,setModalAdd]=useState(false);
+  const [addBusca,setAddBusca]=useState('');
+  const [toast,setToast]=useState('');
+  const showToast=m=>{setToast(m);setTimeout(()=>setToast(''),2500)};
+
+  const addMusica=async m=>{
+    if(!proxMinha) return;
+    const nova={id:Date.now(),musicaId:m.id,nome:m.nome,artista:m.artista,tom:m.tom,capa:m.capa||'',youtubeId:m.youtubeId||''};
+    await atualizarRep(proxMinha.id,[...rep,nova]);
+    setModalAdd(false); setAddBusca('');
+    showToast(`"${m.nome}" adicionada!`);
+  };
+  const remMusica=async entrada=>{
+    if(!proxMinha) return;
+    await atualizarRep(proxMinha.id,rep.filter(r=>r.id!==entrada.id));
+    showToast('Música removida.');
+  };
 
   return(
     <div>
+      <Toast msg={toast}/>
       {/* Saudação */}
       <div style={{marginBottom:24}}>
         <div style={{fontSize:13,color:'var(--text3)',marginBottom:4}}>
@@ -614,26 +694,45 @@ function Dashboard({usuario,escalas,musicas,avisos,onPage,onPlay}){
         </div>
       )}
 
-      {/* Repertório */}
-      {rep.length>0&&(
+      {/* Repertório — com CRUD inline */}
+      {proxMinha&&(
         <div style={{marginBottom:20}}>
-          <div style={{fontSize:16,fontWeight:700,marginBottom:12}}>Repertório da semana</div>
-          <div className="card">
-            {rep.map((m,i)=>(
-              <div key={m.id} className="musica-row" style={{cursor:'pointer'}} onClick={()=>onPlay(m)}>
-                <div style={{width:24,fontSize:12,color:'var(--text3)',textAlign:'center',flexShrink:0}}>{i+1}</div>
-                <div className="musica-thumb">
-                  {m.capa?<img src={m.capa} alt=""/>:<Ico n="music" s={16} c="var(--text3)"/>}
-                </div>
-                <div className="musica-info">
-                  <div className="musica-name">{m.nome}</div>
-                  <div className="musica-artist">{m.artista}</div>
-                </div>
-                <span className="tom-badge">{m.tom}</span>
-                <div className="play-circle"><Ico n="play" s={12}/></div>
-              </div>
-            ))}
+          <div style={{fontSize:16,fontWeight:700,marginBottom:12,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            Repertório — {proxMinha.data}
+            {isMin&&(
+              <button className="btn btn-gold btn-sm" onClick={()=>setModalAdd(true)}>
+                <Ico n="plus" s={14}/>Adicionar
+              </button>
+            )}
           </div>
+
+          {rep.length===0?(
+            <div className="card" style={{textAlign:'center',padding:'24px 16px'}}>
+              <Ico n="music" s={32} c="var(--text4)" st={{display:'block',margin:'0 auto 8px'}}/>
+              <div style={{fontSize:13,color:'var(--text3)',marginBottom:12}}>Nenhuma música no repertório</div>
+              {isMin&&<button className="btn btn-gold btn-sm" onClick={()=>setModalAdd(true)}><Ico n="plus" s={14}/>Adicionar música</button>}
+            </div>
+          ):(
+            <div className="card">
+              {rep.map((m,i)=>(
+                <div key={m.id} className="musica-row">
+                  <div style={{width:24,fontSize:12,color:'var(--text3)',textAlign:'center',flexShrink:0}}>{i+1}</div>
+                  <div className="musica-thumb" style={{cursor:'pointer'}} onClick={()=>onPlay(m)}>
+                    {m.capa?<img src={m.capa} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<Ico n="music" s={16} c="var(--text3)"/>}
+                  </div>
+                  <div className="musica-info" style={{cursor:'pointer'}} onClick={()=>onPlay(m)}>
+                    <div className="musica-name">{m.nome}</div>
+                    <div className="musica-artist">{m.artista}</div>
+                  </div>
+                  <span className="tom-badge">{m.tom}</span>
+                  <div className="play-circle" onClick={()=>onPlay(m)}><Ico n="play" s={12}/></div>
+                  {isMin&&<button onClick={()=>remMusica(m)} style={{width:28,height:28,borderRadius:8,background:'var(--bg3)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0}}>
+                    <Ico n="x" s={12} c="var(--red)"/>
+                  </button>}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -664,6 +763,48 @@ function Dashboard({usuario,escalas,musicas,avisos,onPage,onPlay}){
           ))}
         </div>
       )}
+
+      {/* Modal — adicionar música ao repertório direto do dashboard */}
+      {modalAdd&&proxMinha&&(
+        <div className="overlay" onClick={e=>{if(e.target.classList.contains('overlay')){setModalAdd(false);setAddBusca('');}}}>
+          <div className="modal">
+            <div className="modal-handle"/>
+            <div className="modal-title">
+              Adicionar ao repertório
+              <button onClick={()=>{setModalAdd(false);setAddBusca('');}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text3)'}}><Ico n="x" s={20}/></button>
+            </div>
+            <div style={{fontSize:12,color:'var(--text3)',marginBottom:12}}>
+              Escala: <strong style={{color:'var(--text)'}}>{proxMinha.dia} · {proxMinha.data}</strong>
+            </div>
+            <div className="search-wrap" style={{marginBottom:14}}>
+              <Ico n="search"/>
+              <input className="search-inp" placeholder="Buscar música..." value={addBusca} onChange={e=>setAddBusca(e.target.value)} autoFocus/>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:8,maxHeight:320,overflowY:'auto'}}>
+              {musicas.filter(m=>m.nome.toLowerCase().includes(addBusca.toLowerCase())||m.artista.toLowerCase().includes(addBusca.toLowerCase())).map(m=>{
+                const ja=rep.some(r=>r.musicaId===m.id);
+                return(
+                  <button key={m.id} onClick={()=>!ja&&addMusica(m)}
+                    style={{display:'flex',alignItems:'center',gap:12,padding:'12px',borderRadius:12,background:'var(--bg3)',border:'1px solid var(--bg4)',cursor:ja?'default':'pointer',opacity:ja?0.5:1,width:'100%',textAlign:'left',transition:'border-color 0.1s'}}
+                    onMouseEnter={e=>{if(!ja)e.currentTarget.style.borderColor='var(--gold)';}}
+                    onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--bg4)';}}
+                  >
+                    <div className="musica-thumb">
+                      {m.capa?<img src={m.capa} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<Ico n="music" s={16} c="var(--text3)"/>}
+                    </div>
+                    <div className="musica-info"><div style={{fontSize:14,fontWeight:500}}>{m.nome}</div><div style={{fontSize:12,color:'var(--text3)'}}>{m.artista}</div></div>
+                    <span className="tom-badge">{m.tom}</span>
+                    {ja&&<span className="tag tag-teal" style={{fontSize:10}}>✓</span>}
+                  </button>
+                );
+              })}
+              {musicas.filter(m=>m.nome.toLowerCase().includes(addBusca.toLowerCase())).length===0&&(
+                <div style={{textAlign:'center',padding:'20px',color:'var(--text3)',fontSize:13}}>Nenhuma música encontrada</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -681,11 +822,12 @@ function Escalas({escalas,setEscalas,salvarEscala,excluirEscala,atualizarRep,mus
   const [editTom,setEditTom]=useState(null);
   const [salvando,setSalvando]=useState(false);
   const [toast,setToast]=useState('');
+  const [ensaio,setEnsaio]=useState(false); // modo ensaio fullscreen
+  const [ensaioIdx,setEnsaioIdx]=useState(0);
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(''),2500)};
-  const NOMES=musicas.map(m=>m.nome); // para escala musicos usar nomes dos membros
   const MEMBROS_NOMES=['Pastor Éder','Pastora Hilda','Pastor Igor','Fran','Guilherme','Keith','Kimberly','Lucimara','Fabi','Hilma','Mara','Luciel','Katryel','Fagner','Miguel','Pablo','Nanda','Luiz','Gustavo','Wesley Fábio'];
 
-  const fBase={data:'',dia:'Domingo',culto:'2 cultos',ceia:false,ministerio:'',vocal:'',musicos:{baixo:'',guitarra:'',teclado:'',bateria:''},repertorio:[]};
+  const fBase={data:'',dia:'Domingo',culto:'2 cultos',ceia:false,ministerio:'',vocal:'',musicos:{baixo:'',guitarra:'',teclado:'',bateria:''},repertorio:[],observacoes:''};
   const [fEsc,setFEsc]=useState(fBase);
 
   const hoje=hojeMs();
@@ -695,18 +837,49 @@ function Escalas({escalas,setEscalas,salvarEscala,excluirEscala,atualizarRep,mus
   const selAtual=escalas.find(e=>e.id===sel?.id)||sel;
   const rep=selAtual?.repertorio||[];
 
-  const abrirEditar=e=>{setEditEsc(e);setFEsc({data:e.data,dia:e.dia,culto:e.culto,ceia:e.ceia||false,ministerio:e.ministerio||'',vocal:e.vocal||'',musicos:{...e.musicos},repertorio:e.repertorio||[]});setModalEsc(true);};
+  const abrirEditar=e=>{setEditEsc(e);setFEsc({data:e.data,dia:e.dia,culto:e.culto,ceia:e.ceia||false,ministerio:e.ministerio||'',vocal:e.vocal||'',musicos:{...e.musicos},repertorio:e.repertorio||[],observacoes:e.observacoes||''});setModalEsc(true);};
   const salvar=async()=>{
     if(!fEsc.data.trim()) return;
     setSalvando(true);
     try{
-      const base=editEsc?{...editEsc,...fEsc}:{...fEsc};
+      const base=editEsc?{...editEsc,...fEsc}:{...fEsc,confirmacoes:{}};
       const saved=await salvarEscala(base);
       setSel(saved||base);
       showToast(editEsc?'Escala atualizada!':'Escala criada!');
       setModalEsc(false);
     }catch(e){showToast('Erro: '+e.message);}
     finally{setSalvando(false);}
+  };
+
+  // Duplicar escala
+  const duplicarEscala=e=>{
+    setEditEsc(null);
+    setFEsc({...fBase,dia:e.dia,culto:e.culto,ceia:e.ceia,ministerio:e.ministerio,vocal:e.vocal,musicos:{...e.musicos},observacoes:e.observacoes||''});
+    setModalEsc(true);
+    showToast('Preencha a nova data e ajuste se necessário.');
+  };
+
+  // Confirmar presença
+  const confirmar=async(escala,nome,status)=>{
+    const confs={...(escala.confirmacoes||{}), [nome]:status};
+    try{
+      await salvarEscala({...escala,confirmacoes:confs});
+      showToast(status==='sim'?'Presença confirmada!':'Indisponibilidade registrada.');
+    }catch(e){showToast('Erro: '+e.message);}
+  };
+
+  // Salvar observações
+  const salvarObs=async(escala,obs)=>{
+    try{await salvarEscala({...escala,observacoes:obs});}catch(e){showToast('Erro: '+e.message);}
+  };
+
+  // Reordenar músicas no repertório
+  const moverMusica=async(idx,dir)=>{
+    const rep=[...(selAtual.repertorio||[])];
+    const newIdx=idx+dir;
+    if(newIdx<0||newIdx>=rep.length) return;
+    [rep[idx],rep[newIdx]]=[rep[newIdx],rep[idx]];
+    await atualizarRep(selAtual.id,rep);
   };
 
   const addMusica=async m=>{
@@ -769,6 +942,7 @@ function Escalas({escalas,setEscalas,salvarEscala,excluirEscala,atualizarRep,mus
             <div style={{fontSize:13,color:'var(--text3)'}}>{selAtual.culto}{selAtual.ceia?' · CEIA':''}</div>
           </div>
           {isMin&&<button onClick={()=>abrirEditar(selAtual)} className="btn-icon"><Ico n="edit" s={16} c="var(--text3)"/></button>}
+          {isMin&&<button onClick={()=>duplicarEscala(selAtual)} className="btn-icon" title="Duplicar escala"><Ico n="plus" s={16} c="var(--teal)"/></button>}
           {isAdmin&&<button onClick={async()=>{await excluirEscala(selAtual.id);setSel(null);}} className="btn-icon"><Ico n="trash" s={16} c="var(--red)"/></button>}
         </div>
 
@@ -781,6 +955,7 @@ function Escalas({escalas,setEscalas,salvarEscala,excluirEscala,atualizarRep,mus
         <div className="tabs">
           <div className={`tab${aba==='time'?' active':''}`} onClick={()=>setAba('time')}>Time</div>
           <div className={`tab${aba==='rep'?' active':''}`} onClick={()=>setAba('rep')}>Repertório {rep.length>0?`(${rep.length})`:''}</div>
+          <div className={`tab${aba==='conf'?' active':''}`} onClick={()=>setAba('conf')}>Presenças</div>
         </div>
 
         {aba==='time'&&(
@@ -832,18 +1007,112 @@ function Escalas({escalas,setEscalas,salvarEscala,excluirEscala,atualizarRep,mus
                       <button onClick={()=>setEditTom(m.id)} className="tom-badge" style={{cursor:'pointer',background:'var(--gold-bg)',color:'var(--gold)',border:'1px solid var(--gold-bdr)'}}>{m.tom} ✎</button>
                     )}
                     {isMin&&<button className="btn-icon" onClick={()=>remMusica(m)}><Ico n="trash" s={14} c="var(--red)"/></button>}
+                    {isMin&&<button className="reorder-btn" onClick={()=>moverMusica(i,-1)} title="Subir">↑</button>}
+                    {isMin&&<button className="reorder-btn" onClick={()=>moverMusica(i,1)} title="Descer">↓</button>}
                   </div>
                 ))}
               </div>
             )}
             {isMin&&(
-              <div style={{display:'flex',gap:8}}>
+              <div style={{display:'flex',gap:8,marginTop:12}}>
                 <button className="btn btn-gold" style={{flex:1,justifyContent:'center'}} onClick={()=>setModalMus(true)}>
                   <Ico n="plus" s={16}/>Adicionar
                 </button>
                 {rep.length>0&&<button className="btn btn-ghost" onClick={notificar}><Ico n="send" s={16}/>Notificar</button>}
               </div>
             )}
+            {rep.length>0&&(
+              <button className="btn btn-ghost" style={{width:'100%',justifyContent:'center',marginTop:8}} onClick={()=>{setEnsaioIdx(0);setEnsaio(true);}}>
+                📖 Modo ensaio
+              </button>
+            )}
+
+            {/* Observações */}
+            <div style={{marginTop:16}}>
+              <div style={{fontSize:13,fontWeight:600,marginBottom:8,color:'var(--text2)'}}>Observações</div>
+              <textarea className="obs-area" placeholder="Anotações para o culto... (ex: começar com adoração, pastor pediu música X)"
+                defaultValue={selAtual.observacoes||''}
+                onBlur={e=>salvarObs(selAtual,e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Aba Confirmações */}
+        {aba==='conf'&&(
+          <div>
+            <div className="card" style={{marginBottom:12}}>
+              <div style={{fontSize:14,fontWeight:600,marginBottom:12}}>Confirmação de presença</div>
+              {(() => {
+                const nomes=[selAtual.ministerio,selAtual.vocal,selAtual.musicos?.guitarra,selAtual.musicos?.teclado,selAtual.musicos?.baixo,selAtual.musicos?.bateria].filter(Boolean).join(' - ').split(' - ').map(n=>n.trim()).filter(Boolean);
+                const unicos=[...new Set(nomes)];
+                const confs=selAtual.confirmacoes||{};
+                const totalConf=unicos.filter(n=>confs[n]==='sim').length;
+                const totalNao=unicos.filter(n=>confs[n]==='nao').length;
+                const totalPend=unicos.length-totalConf-totalNao;
+                return (
+                  <>
+                    <div style={{display:'flex',gap:8,marginBottom:14}}>
+                      <span className="tag tag-teal">✓ {totalConf} confirmados</span>
+                      <span className="tag tag-red">✗ {totalNao} indisponíveis</span>
+                      <span className="tag tag-gray">⏳ {totalPend} pendentes</span>
+                    </div>
+                    {unicos.map(nome=>{
+                      const st=confs[nome];
+                      const isMe=norm(nome).includes(norm(usuario.nome.split(' ')[0]));
+                      return(
+                        <div key={nome} className="conf-row">
+                          <div style={{flex:1,fontSize:14,fontWeight:isMe?600:400,color:isMe?'var(--gold)':'var(--text)'}}>{nome}</div>
+                          {st==='sim'&&<span className="tag tag-teal">✓ Confirmado</span>}
+                          {st==='nao'&&<span className="tag tag-red">✗ Indisponível</span>}
+                          {!st&&<span className="tag tag-gray">⏳ Pendente</span>}
+                          {isMe&&!st&&(
+                            <div style={{display:'flex',gap:6}}>
+                              <button className="conf-btn yes" onClick={()=>confirmar(selAtual,nome,'sim')}>✓ Confirmo</button>
+                              <button className="conf-btn no" onClick={()=>confirmar(selAtual,nome,'nao')}>✗ Não posso</button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* Modo Ensaio Fullscreen */}
+        {ensaio&&rep.length>0&&(
+          <div className="ensaio-overlay">
+            <div className="ensaio-header">
+              <div style={{fontSize:12,color:'var(--text3)'}}>{selAtual.dia} · {selAtual.data}</div>
+              <button onClick={()=>setEnsaio(false)} style={{background:'var(--bg3)',border:'none',borderRadius:50,width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+                <Ico n="x" s={18} c="var(--text)"/>
+              </button>
+            </div>
+            <div className="ensaio-body">
+              <div style={{fontSize:14,color:'var(--gold)',fontWeight:600,marginBottom:8}}>{ensaioIdx+1} de {rep.length}</div>
+              <div style={{fontSize:48,fontWeight:800,letterSpacing:'-1px',marginBottom:16,color:'var(--text)'}}>{rep[ensaioIdx]?.nome}</div>
+              <div style={{fontSize:22,color:'var(--text3)',marginBottom:12}}>{rep[ensaioIdx]?.artista}</div>
+              <div style={{fontSize:32,fontWeight:700,color:'var(--gold)',background:'var(--gold-bg)',padding:'8px 24px',borderRadius:50,display:'inline-block'}}>
+                Tom: {rep[ensaioIdx]?.tom}
+              </div>
+              {rep[ensaioIdx]?.cifraUrl&&(
+                <a href={rep[ensaioIdx].cifraUrl} target="_blank" rel="noreferrer"
+                  style={{display:'block',marginTop:16,color:'var(--blue)',fontSize:14}}>
+                  🎸 Ver cifra ↗
+                </a>
+              )}
+            </div>
+            <div className="ensaio-nav">
+              <button onClick={()=>setEnsaioIdx(i=>Math.max(0,i-1))}
+                style={{background:ensaioIdx>0?'var(--bg3)':'var(--bg4)',color:ensaioIdx>0?'var(--text)':'var(--text4)'}}>←</button>
+              <button onClick={()=>setEnsaio(false)}
+                style={{background:'var(--red)',color:'#fff',fontSize:14,fontWeight:600}}>Fechar</button>
+              <button onClick={()=>setEnsaioIdx(i=>Math.min(rep.length-1,i+1))}
+                style={{background:ensaioIdx<rep.length-1?'var(--gold)':'var(--bg4)',color:ensaioIdx<rep.length-1?'#000':'var(--text4)'}}>→</button>
+            </div>
           </div>
         )}
 
@@ -958,6 +1227,11 @@ function Escalas({escalas,setEscalas,salvarEscala,excluirEscala,atualizarRep,mus
                   </button>
                 ))}
               </div>
+              <div className="form-grp" style={{gridColumn:'1/-1'}}>
+                <label className="form-lbl">Observações (opcional)</label>
+                <textarea className="obs-area" rows={2} placeholder="Ex: começar com adoração, pastor pediu música X no final"
+                  value={fEsc.observacoes||''} onChange={e=>setFEsc(f=>({...f,observacoes:e.target.value}))}/>
+              </div>
             </div>
             <button className="btn btn-gold" style={{width:'100%',justifyContent:'center',marginTop:4}} onClick={salvar} disabled={salvando}>
               <Ico n="check" s={16}/>{salvando?'Salvando...':(editEsc?'Salvar':'Criar escala')}
@@ -977,7 +1251,7 @@ function Musicas({musicas,salvarMusica,excluirMusica,onPlay,usuario}){
   const [modal,setModal]=useState(false);
   const [aba,setAba]=useState('yt');
   const [editando,setEditando]=useState(null);
-  const [form,setForm]=useState({nome:'',artista:'',tom:'Ré',bpm:'',youtubeId:'',capa:''});
+  const [form,setForm]=useState({nome:'',artista:'',tom:'Ré',bpm:'',youtubeId:'',capa:'',cifraUrl:''});
   const [ytQ,setYtQ]=useState('');
   const [ytRes,setYtRes]=useState([]);
   const [ytSel,setYtSel]=useState(null);
@@ -1035,8 +1309,8 @@ function Musicas({musicas,salvarMusica,excluirMusica,onPlay,usuario}){
     }));
   };
 
-  const abrirNovo=()=>{setEditando(null);setForm({nome:'',artista:'',tom:'Ré',bpm:'',youtubeId:'',capa:''});setYtQ('');setYtRes([]);setYtSel(null);setAba('yt');setModal(true);};
-  const abrirEditar=m=>{setEditando(m);setForm({nome:m.nome,artista:m.artista,tom:m.tom,bpm:m.bpm||'',youtubeId:m.youtubeId||'',capa:m.capa||''});setAba('manual');setModal(true);};
+  const abrirNovo=()=>{setEditando(null);setForm({nome:'',artista:'',tom:'Ré',bpm:'',youtubeId:'',capa:'',cifraUrl:''});setYtQ('');setYtRes([]);setYtSel(null);setAba('yt');setModal(true);};
+  const abrirEditar=m=>{setEditando(m);setForm({nome:m.nome,artista:m.artista,tom:m.tom,bpm:m.bpm||'',youtubeId:m.youtubeId||'',capa:m.capa||'',cifraUrl:m.cifraUrl||''});setAba('manual');setModal(true);};
 
   const salvar=async()=>{
     if(!form.nome.trim()) return;
@@ -1075,6 +1349,7 @@ function Musicas({musicas,salvarMusica,excluirMusica,onPlay,usuario}){
             <div className="musica-artist">{m.artista}{m.bpm?` · ${m.bpm} bpm`:''}</div>
           </div>
           <span className="tom-badge">{m.tom}</span>
+          {m.cifraUrl&&<a href={m.cifraUrl} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()} style={{fontSize:11,color:'var(--blue)',textDecoration:'none',flexShrink:0}} title="Ver cifra">🎸</a>}
           <button className="play-circle" onClick={()=>onPlay(m)}><Ico n="play" s={12}/></button>
           {isMin&&<button className="btn-icon" onClick={()=>abrirEditar(m)}><Ico n="edit" s={14} c="var(--text3)"/></button>}
           {isAdmin&&<button className="btn-icon" onClick={async()=>{await excluirMusica(m.id);showToast('Removida.');}}><Ico n="trash" s={14} c="var(--red)"/></button>}
@@ -1144,6 +1419,11 @@ function Musicas({musicas,salvarMusica,excluirMusica,onPlay,usuario}){
                   <div className="form-grp">
                     <label className="form-lbl">BPM</label>
                     <input className="inp" type="number" value={form.bpm} onChange={e=>setForm(f=>({...f,bpm:e.target.value}))} placeholder="opcional"/>
+                  </div>
+                  <div className="form-grp" style={{gridColumn:'1/-1'}}>
+                    <label className="form-lbl">Link da cifra (opcional)</label>
+                    <input className="inp" value={form.cifraUrl||''} onChange={e=>setForm(f=>({...f,cifraUrl:e.target.value}))} placeholder="Ex: https://www.cifraclub.com.br/..."/>
+                    <div style={{fontSize:10,color:'var(--text3)',marginTop:4}}>Cole o link do Cifra Club, Letras.mus ou similar</div>
                   </div>
                   {aba==='manual'&&(
                     <div className="form-grp" style={{gridColumn:'1/-1'}}>
@@ -1753,7 +2033,7 @@ function App(){
         </div>
 
         <div className="content">
-          {page==='home'    &&<Dashboard usuario={usuario} escalas={escalas} musicas={musicas} avisos={avisosVis} onPage={setPage} onPlay={setPlayer}/>}
+          {page==='home'    &&<Dashboard usuario={usuario} escalas={escalas} musicas={musicas} avisos={avisosVis} onPage={setPage} onPlay={setPlayer} atualizarRep={atualizarRep}/>}
           {page==='escalas' &&<Escalas escalas={escalas} setEscalas={setEscalas} salvarEscala={salvarEscala} excluirEscala={excluirEscala} atualizarRep={atualizarRep} musicas={musicas} salvarAviso={salvarAviso} usuario={usuario}/>}
           {page==='musicas' &&<Musicas musicas={musicas} salvarMusica={salvarMusica} excluirMusica={excluirMusica} onPlay={setPlayer} usuario={usuario}/>}
           {page==='avisos'  &&<Avisos avisos={avisosVis} setAvisos={setAvisos} salvarAviso={salvarAviso} excluirAviso={excluirAviso} membros={membros} usuario={usuario} onPage={setPage}/>}
