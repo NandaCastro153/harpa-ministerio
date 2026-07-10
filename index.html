@@ -304,6 +304,8 @@ const MEMBROS = [
   {id:18, nome:'Luiz',         papel:'Baixista',                funcoes:['Baixo'],                cor:'#0F6E56',tipo:'musico',   pin:'1234',acesso:'membro'},
   {id:19, nome:'Gustavo',      papel:'Tecladista / Back',       funcoes:['Teclado','Back vocal'], cor:'#854F0B',tipo:'musico',   pin:'1234',acesso:'membro'},
   {id:20, nome:'Wesley Fábio', papel:'Violonista',              funcoes:['Violão'],               cor:'#185FA5',tipo:'musico',   pin:'1234',acesso:'membro'},
+  {id:21, nome:'Sonoplasta',   papel:'Sonoplastia',             funcoes:['Sonoplastia'],          cor:'#888888',tipo:'apoio',    pin:'0000',acesso:'visualizador'},
+  {id:22, nome:'Dança',        papel:'Ministério de Dança',     funcoes:['Dança'],                cor:'#ED93B1',tipo:'apoio',    pin:'0000',acesso:'visualizador'},
 ];
 
 const ESCALAS_INICIAIS = [
@@ -503,10 +505,12 @@ function PlayerYT({musica,onClose}){
   },[musica?.id]);
 
   if(!musica) return null;
+  const isMob=window.innerWidth<680;
   return (
     <div style={{
-      position:'fixed',bottom:0,left:0,right:0,zIndex:25,
+      position:'fixed',bottom:isMob?64:0,left:isMob?0:220,right:0,zIndex:200,
       background:'rgba(10,10,10,0.98)',borderTop:'1px solid var(--bg3)',
+      boxShadow:'0 -8px 40px rgba(0,0,0,0.8)',
     }}>
       {/* Header */}
       <div style={{display:'flex',alignItems:'center',gap:12,padding:'10px 16px',borderBottom:'1px solid var(--bg3)'}}>
@@ -1959,7 +1963,7 @@ function App(){
     }catch(e){console.warn('Push:',e.message);}
   };
 
-  const doLogin=u=>{setUsuario(u);regPush(u.nome);};
+  const doLogin=u=>{setUsuario(u);regPush(u.nome);if(u.acesso==='visualizador')setPage('escalas');};
 
   // CRUD
   const salvarMembro=async m=>{
@@ -2020,7 +2024,12 @@ function App(){
     :avisos.filter(a=>!a.destinatario||a.destinatario==='todos'||a.destinatario===usuario.nome);
   const naoLidos=avisosVis.filter(a=>!a.lido).length;
 
-  const PAGES=[
+  const isVis=usuario.acesso==='visualizador';
+
+  const PAGES=isVis?[
+    {id:'escalas',l:'Escalas', n:'cal'},
+    {id:'musicas',l:'Músicas', n:'music'},
+  ]:[
     {id:'home',   l:'Início',  n:'home'},
     {id:'escalas',l:'Escalas', n:'cal'},
     {id:'musicas',l:'Músicas', n:'music'},
@@ -2083,12 +2092,12 @@ function App(){
         </div>
 
         <div className="content">
-          {page==='home'    &&<Dashboard usuario={usuario} escalas={escalas} musicas={musicas} avisos={avisosVis} onPage={navPage} onPlay={openPlayer} atualizarRep={atualizarRep}/>}
+          {page==='home'    &&!isVis&&<Dashboard usuario={usuario} escalas={escalas} musicas={musicas} avisos={avisosVis} onPage={navPage} onPlay={openPlayer} atualizarRep={atualizarRep}/>}
           {page==='escalas' &&<Escalas escalas={escalas} setEscalas={setEscalas} salvarEscala={salvarEscala} excluirEscala={excluirEscala} atualizarRep={atualizarRep} musicas={musicas} salvarAviso={salvarAviso} usuario={usuario}/>}
           {page==='musicas' &&<Musicas musicas={musicas} salvarMusica={salvarMusica} excluirMusica={excluirMusica} onPlay={openPlayer} usuario={usuario}/>}
-          {page==='avisos'  &&<Avisos avisos={avisosVis} setAvisos={setAvisos} salvarAviso={salvarAviso} excluirAviso={excluirAviso} membros={membros} usuario={usuario} onPage={navPage}/>}
-          {page==='membros' &&<Membros membros={membros} salvarMembro={salvarMembro} excluirMembro={excluirMembro} usuario={usuario}/>}
-          {page==='studio'  &&<Studio/>}
+          {page==='avisos'  &&!isVis&&<Avisos avisos={avisosVis} setAvisos={setAvisos} salvarAviso={salvarAviso} excluirAviso={excluirAviso} membros={membros} usuario={usuario} onPage={navPage}/>}
+          {page==='membros' &&!isVis&&<Membros membros={membros} salvarMembro={salvarMembro} excluirMembro={excluirMembro} usuario={usuario}/>}
+          {page==='studio'  &&!isVis&&<Studio/>}
           {page==='config'  &&isAdmin&&<Config membros={membros} usuario={usuario}/>}
         </div>
       </div>
