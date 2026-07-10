@@ -563,72 +563,83 @@ function TelaLogin({membros,onLogin}){
     const novo=pin+d;
     setPin(novo);
     if(novo.length===4){
-      if(novo===sel.pin) onLogin(sel);
-      else{setErr('PIN incorreto');setTimeout(()=>{setPin('');setErr('');},1200);}
+      setTimeout(()=>{
+        if(novo===sel.pin) onLogin(sel);
+        else{setErr('PIN incorreto');setTimeout(()=>{setPin('');setErr('');},1200);}
+      },150);
     }
   };
 
   return(
-    <div className="login-screen">
-      <div className="login-logo">♪</div>
-      <div className="login-title">Harpa</div>
-      <div className="login-sub">Ministério de Louvor</div>
+    <div style={{
+      minHeight:'100vh',background:'var(--bg)',
+      display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',
+      padding:'40px 20px 40px',overflowY:'auto'
+    }}>
+      <div style={{width:'100%',maxWidth:360,margin:'auto 0'}}>
+        {/* Logo */}
+        <div style={{textAlign:'center',marginBottom:28}}>
+          <div style={{width:64,height:64,background:'var(--gold)',borderRadius:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:32,margin:'0 auto 12px',boxShadow:'0 0 40px rgba(200,168,75,0.3)'}}>♪</div>
+          <div style={{fontSize:24,fontWeight:800,color:'var(--gold)',letterSpacing:'-0.5px'}}>Harpa</div>
+          <div style={{fontSize:13,color:'var(--text3)',marginTop:4}}>Ministério de Louvor</div>
+        </div>
 
-      {step==='nome'&&(
-        <>
-          <div className="search-wrap" style={{width:'100%',maxWidth:320,marginBottom:16}}>
-            <Ico n="search"/>
-            <input className="search-inp" placeholder="Buscar seu nome..." value={busca} onChange={e=>setBusca(e.target.value)} autoFocus/>
-          </div>
-          <div style={{width:'100%',maxWidth:320,maxHeight:300,overflowY:'auto',display:'flex',flexDirection:'column',gap:6}}>
-            {filtrados.map(m=>(
-              <button key={m.id} onClick={()=>selecionarMembro(m)}
-                style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',borderRadius:12,background:'var(--bg2)',border:'1px solid var(--bg3)',cursor:'pointer',transition:'all 0.12s',width:'100%',textAlign:'left'}}
-                onMouseEnter={e=>e.currentTarget.style.borderColor='var(--gold)'}
-                onMouseLeave={e=>e.currentTarget.style.borderColor='var(--bg3)'}
-              >
-                <div className="av av-md" style={{background:m.cor+'22',color:m.cor}}>{initials(m.nome)}</div>
-                <div>
-                  <div style={{fontSize:15,fontWeight:600}}>{m.nome}</div>
-                  <div style={{fontSize:12,color:'var(--text3)'}}>{m.papel}</div>
-                </div>
-                <Ico n="chevron" s={16} c="var(--text3)" st={{marginLeft:'auto'}}/>
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-
-      {step==='pin'&&(
-        <>
-          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
-            <div className="av av-md" style={{background:sel.cor+'22',color:sel.cor}}>{initials(sel.nome)}</div>
-            <div>
-              <div style={{fontSize:17,fontWeight:700}}>{sel.nome}</div>
-              <div style={{fontSize:13,color:'var(--text3)'}}>{sel.papel}</div>
+        {step==='nome'&&(
+          <>
+            <div style={{fontSize:15,fontWeight:600,color:'var(--text)',marginBottom:4,textAlign:'center'}}>Quem é você?</div>
+            <div style={{fontSize:12,color:'var(--text3)',marginBottom:16,textAlign:'center'}}>Selecione seu nome</div>
+            <div className="search-wrap" style={{marginBottom:12}}>
+              <Ico n="search"/>
+              <input className="search-inp" placeholder="Buscar nome..." value={busca} onChange={e=>setBusca(e.target.value)} autoFocus/>
             </div>
+            <div style={{maxHeight:'50vh',overflowY:'auto',display:'flex',flexDirection:'column',gap:6}}>
+              {filtrados.map(m=>(
+                <button key={m.id} onClick={()=>selecionarMembro(m)}
+                  style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',borderRadius:12,background:'var(--bg2)',border:'1px solid var(--bg3)',cursor:'pointer',transition:'all 0.12s',width:'100%',textAlign:'left'}}
+                  onMouseEnter={e=>e.currentTarget.style.borderColor='var(--gold)'}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor='var(--bg3)'}
+                >
+                  <div className="av av-md" style={{background:m.cor+'22',color:m.cor}}>{initials(m.nome)}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:15,fontWeight:600}}>{m.nome}</div>
+                    <div style={{fontSize:12,color:'var(--text3)'}}>{m.papel}</div>
+                  </div>
+                  <Ico n="chevron" s={16} c="var(--text3)"/>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {step==='pin'&&sel&&(
+          <div style={{textAlign:'center'}}>
+            <button onClick={()=>{setStep('nome');setSel(null);setPin('');}} style={{color:'var(--text3)',fontSize:13,background:'none',border:'none',cursor:'pointer',marginBottom:20,display:'inline-flex',alignItems:'center',gap:4}}>
+              ← Voltar
+            </button>
+            <div className="av av-lg" style={{background:sel.cor+'22',color:sel.cor,margin:'0 auto 10px'}}>{initials(sel.nome)}</div>
+            <div style={{fontSize:17,fontWeight:700,marginBottom:2}}>{sel.nome}</div>
+            <div style={{fontSize:13,color:'var(--text3)',marginBottom:20}}>{sel.papel}</div>
+
+            <div style={{fontSize:14,color:'var(--text2)',marginBottom:12}}>Digite seu PIN</div>
+            {err&&<div style={{fontSize:13,color:'var(--red)',marginBottom:8}}>{err}</div>}
+
+            <div style={{display:'flex',justifyContent:'center',gap:14,marginBottom:24}}>
+              {[0,1,2,3].map(i=><div key={i} style={{width:16,height:16,borderRadius:50,background:pin.length>i?'var(--gold)':'var(--bg4)',border:`2px solid ${pin.length>i?'var(--gold)':'var(--bg4)'}`,transition:'all 0.15s'}}/>)}
+            </div>
+
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,maxWidth:240,margin:'0 auto'}}>
+              {[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map((k,i)=>(
+                <button key={i}
+                  onClick={()=>{if(k==='⌫')setPin(p=>p.slice(0,-1));else if(k!=='')adicionarDigito(String(k));}}
+                  style={{height:56,borderRadius:12,background:k===''?'transparent':'var(--bg3)',border:k===''?'none':'1px solid var(--bg4)',fontSize:k==='⌫'?18:20,fontWeight:500,color:'var(--text)',cursor:k===''?'default':'pointer',transition:'all 0.1s'}}
+                  disabled={k===''}
+                >{k}</button>
+              ))}
+            </div>
+            <div style={{fontSize:11,color:'var(--text4)',marginTop:16}}>PIN padrão: 1234</div>
           </div>
-          <div style={{fontSize:14,color:'var(--text3)',marginBottom:4}}>Digite seu PIN</div>
-          {err&&<div style={{fontSize:13,color:'var(--red)',marginBottom:4}}>{err}</div>}
-          <div className="pin-dots">
-            {[0,1,2,3].map(i=><div key={i} className={`pin-dot${pin.length>i?' filled':''}`}/>)}
-          </div>
-          <div className="pin-pad">
-            {[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map((k,i)=>(
-              <button key={i} className="pin-key"
-                onClick={()=>{
-                  if(k==='⌫') setPin(p=>p.slice(0,-1));
-                  else if(k!=='') adicionarDigito(String(k));
-                }}
-                style={{opacity:k===''?0:1}}
-              >{k}</button>
-            ))}
-          </div>
-          <button onClick={()=>{setStep('nome');setSel(null);setPin('');}} style={{color:'var(--text3)',fontSize:14,marginTop:16,background:'none',border:'none',cursor:'pointer'}}>
-            ← Voltar
-          </button>
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -647,6 +658,12 @@ function Dashboard({usuario,escalas,musicas,avisos,onPage,onPlay,atualizarRep}){
   const [addBusca,setAddBusca]=useState('');
   const [toast,setToast]=useState('');
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(''),2500)};
+
+  // Busca dados completos da música (com youtubeId) antes de tocar
+  const playMusica=m=>{
+    const full=musicas.find(x=>x.id===m.musicaId)||musicas.find(x=>x.nome===m.nome)||m;
+    onPlay({...m,...full,tom:m.tom}); // mantém o tom da escala
+  };
 
   const addMusica=async m=>{
     if(!proxMinha) return;
@@ -717,15 +734,15 @@ function Dashboard({usuario,escalas,musicas,avisos,onPage,onPlay,atualizarRep}){
               {rep.map((m,i)=>(
                 <div key={m.id} className="musica-row">
                   <div style={{width:24,fontSize:12,color:'var(--text3)',textAlign:'center',flexShrink:0}}>{i+1}</div>
-                  <div className="musica-thumb" style={{cursor:'pointer'}} onClick={()=>onPlay(m)}>
+                  <div className="musica-thumb" style={{cursor:'pointer'}} onClick={()=>playMusica(m)}>
                     {m.capa?<img src={m.capa} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<Ico n="music" s={16} c="var(--text3)"/>}
                   </div>
-                  <div className="musica-info" style={{cursor:'pointer'}} onClick={()=>onPlay(m)}>
+                  <div className="musica-info" style={{cursor:'pointer'}} onClick={()=>playMusica(m)}>
                     <div className="musica-name">{m.nome}</div>
                     <div className="musica-artist">{m.artista}</div>
                   </div>
                   <span className="tom-badge">{m.tom}</span>
-                  <div className="play-circle" onClick={()=>onPlay(m)}><Ico n="play" s={12}/></div>
+                  <div className="play-circle" onClick={()=>playMusica(m)}><Ico n="play" s={12}/></div>
                   {isMin&&<button onClick={()=>remMusica(m)} style={{width:28,height:28,borderRadius:8,background:'var(--bg3)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0}}>
                     <Ico n="x" s={12} c="var(--red)"/>
                   </button>}
@@ -1867,6 +1884,39 @@ function App(){
   const [avisos,setAvisos]=useState(AVISOS_INICIAIS);
   const [player,setPlayer]=useState(null);
 
+  // History API — botão voltar do celular navega dentro do app
+  useEffect(()=>{
+    const onPop=()=>{
+      // Fecha player se aberto
+      if(player){setPlayer(null);return;}
+      // Volta para home se estiver em outra página
+      setPage(p=>{
+        if(p!=='home'){
+          return 'home';
+        }
+        // Se já está no home, deixa o navegador fechar
+        return p;
+      });
+    };
+    window.addEventListener('popstate',onPop);
+    return ()=>window.removeEventListener('popstate',onPop);
+  },[player]);
+
+  // Push state quando muda de página
+  const navPage=(pg)=>{
+    if(pg!==page){
+      window.history.pushState({page:pg},'',`#${pg}`);
+    }
+    setPage(pg);
+  };
+
+  // Fechar player também empurra state
+  const openPlayer=(m)=>{
+    window.history.pushState({player:true},'');
+    setPlayer(m);
+  };
+  const closePlayer=()=>setPlayer(null);
+
   // Supabase load
   useEffect(()=>{
     async function load(){
@@ -1998,14 +2048,14 @@ function App(){
           </div>
           <div className="sidebar-nav">
             {PAGES.map(p=>(
-              <div key={p.id} className={`sidebar-item${page===p.id?' active':''}`} onClick={()=>setPage(p.id)}>
+              <div key={p.id} className={`sidebar-item${page===p.id?' active':''}`} onClick={()=>navPage(p.id)}>
                 <Ico n={p.n} s={18}/>
                 {p.l}
                 {p.badge&&<span style={{marginLeft:'auto',background:'var(--red)',color:'#fff',fontSize:10,padding:'1px 6px',borderRadius:50,fontWeight:700}}>{p.badge}</span>}
               </div>
             ))}
-            {isAdmin&&<div className={`sidebar-item${page==='studio'?' active':''}`} onClick={()=>setPage('studio')}><Ico n="mic" s={18}/>Studio ✦</div>}
-            {isAdmin&&<div className={`sidebar-item${page==='config'?' active':''}`} onClick={()=>setPage('config')}><Ico n="gear" s={18}/>Configurações</div>}
+            {isAdmin&&<div className={`sidebar-item${page==='studio'?' active':''}`} onClick={()=>navPage('studio')}><Ico n="mic" s={18}/>Studio ✦</div>}
+            {isAdmin&&<div className={`sidebar-item${page==='config'?' active':''}`} onClick={()=>navPage('config')}><Ico n="gear" s={18}/>Configurações</div>}
           </div>
           <div className="sidebar-footer">
             <div style={{display:'flex',alignItems:'center',gap:10}}>
@@ -2014,7 +2064,7 @@ function App(){
                 <div style={{fontSize:13,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{usuario.nome}</div>
                 <div style={{fontSize:11,color:'var(--text3)'}}>{usuario.papel}</div>
               </div>
-              <button onClick={()=>{setUsuario(null);setPage('home');}} className="btn-icon" title="Sair"><Ico n="logout" s={14} c="var(--text3)"/></button>
+              <button onClick={()=>{setUsuario(null);navPage('home');}} className="btn-icon" title="Sair"><Ico n="logout" s={14} c="var(--text3)"/></button>
             </div>
           </div>
         </div>
@@ -2027,16 +2077,16 @@ function App(){
             <div className="topbar-title">{titles[page]||page}</div>
           </div>
           <div style={{display:'flex',alignItems:'center',gap:8,marginLeft:'auto'}}>
-            {isAdmin&&page==='musicas'&&<button className="btn-icon" onClick={()=>setPage('studio')} title="Studio"><Ico n="mic" s={18} c="var(--text3)"/></button>}
-            <div className="av av-sm" style={{background:usuario.cor+'22',color:usuario.cor,cursor:'pointer'}} onClick={()=>{setUsuario(null);setPage('home');}} title="Sair">{initials(usuario.nome)}</div>
+            {isAdmin&&page==='musicas'&&<button className="btn-icon" onClick={()=>navPage('studio')} title="Studio"><Ico n="mic" s={18} c="var(--text3)"/></button>}
+            <div className="av av-sm" style={{background:usuario.cor+'22',color:usuario.cor,cursor:'pointer'}} onClick={()=>{setUsuario(null);navPage('home');}} title="Sair">{initials(usuario.nome)}</div>
           </div>
         </div>
 
         <div className="content">
-          {page==='home'    &&<Dashboard usuario={usuario} escalas={escalas} musicas={musicas} avisos={avisosVis} onPage={setPage} onPlay={setPlayer} atualizarRep={atualizarRep}/>}
+          {page==='home'    &&<Dashboard usuario={usuario} escalas={escalas} musicas={musicas} avisos={avisosVis} onPage={navPage} onPlay={openPlayer} atualizarRep={atualizarRep}/>}
           {page==='escalas' &&<Escalas escalas={escalas} setEscalas={setEscalas} salvarEscala={salvarEscala} excluirEscala={excluirEscala} atualizarRep={atualizarRep} musicas={musicas} salvarAviso={salvarAviso} usuario={usuario}/>}
-          {page==='musicas' &&<Musicas musicas={musicas} salvarMusica={salvarMusica} excluirMusica={excluirMusica} onPlay={setPlayer} usuario={usuario}/>}
-          {page==='avisos'  &&<Avisos avisos={avisosVis} setAvisos={setAvisos} salvarAviso={salvarAviso} excluirAviso={excluirAviso} membros={membros} usuario={usuario} onPage={setPage}/>}
+          {page==='musicas' &&<Musicas musicas={musicas} salvarMusica={salvarMusica} excluirMusica={excluirMusica} onPlay={openPlayer} usuario={usuario}/>}
+          {page==='avisos'  &&<Avisos avisos={avisosVis} setAvisos={setAvisos} salvarAviso={salvarAviso} excluirAviso={excluirAviso} membros={membros} usuario={usuario} onPage={navPage}/>}
           {page==='membros' &&<Membros membros={membros} salvarMembro={salvarMembro} excluirMembro={excluirMembro} usuario={usuario}/>}
           {page==='studio'  &&<Studio/>}
           {page==='config'  &&isAdmin&&<Config membros={membros} usuario={usuario}/>}
@@ -2044,13 +2094,13 @@ function App(){
       </div>
 
       {/* Player */}
-      {player&&<PlayerYT musica={player} onClose={()=>setPlayer(null)}/>}
+      {player&&<PlayerYT musica={player} onClose={closePlayer}/>}
 
       {/* Bottom nav mobile */}
       {isMobile&&(
         <div className="bottomnav">
           {PAGES.map(p=>(
-            <button key={p.id} className={`nav-btn${page===p.id?' active':''}`} onClick={()=>setPage(p.id)}>
+            <button key={p.id} className={`nav-btn${page===p.id?' active':''}`} onClick={()=>navPage(p.id)}>
               <Ico n={p.n} s={22}/>
               <span>{p.l}</span>
               {p.badge&&<span className="nav-dot"/>}
