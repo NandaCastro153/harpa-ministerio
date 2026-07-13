@@ -1,5 +1,5 @@
-// Harpa PWA — Service Worker v16
-const CACHE_VERSION = 'harpa-v16';
+// Harpa PWA — Service Worker v17
+const CACHE_VERSION = 'harpa-v17';
 const ASSETS = ['/', '/index.html', '/manifest.json',
   'https://unpkg.com/react@18/umd/react.production.min.js',
   'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
