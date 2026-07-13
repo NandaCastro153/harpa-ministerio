@@ -1053,13 +1053,108 @@ function Escalas({escalas,setEscalas,salvarEscala,excluirEscala,atualizarRep,mus
   const [editTom,setEditTom]=useState(null);
   const [salvando,setSalvando]=useState(false);
   const [toast,setToast]=useState('');
-  const [ensaio,setEnsaio]=useState(false); // modo ensaio fullscreen
+  const [ensaio,setEnsaio]=useState(false);
   const [ensaioIdx,setEnsaioIdx]=useState(0);
+  const [modalImport,setModalImport]=useState(false);
+  const [importando,setImportando]=useState(false);
+  const [importLog,setImportLog]=useState('');
+  const [importResult,setImportResult]=useState(null);
+  const importRef=useRef();
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(''),2500)};
   const MEMBROS_NOMES=['Pastor Éder','Pastora Hilda','Pastor Igor','Fran','Guilherme','Keith','Kimberly','Lucimara','Fabi','Hilma','Mara','Luciel','Katryel','Fagner','Miguel','Pablo','Nanda','Luiz','Gustavo','Wesley Fábio'];
 
   const fBase={data:'',dia:'Domingo',culto:'2 cultos',ceia:false,ministerio:'',vocal:'',musicos:{baixo:'',guitarra:'',teclado:'',bateria:''},repertorio:[],observacoes:''};
   const [fEsc,setFEsc]=useState(fBase);
+
+  const importarArquivo=async(file)=>{
+    if(!file) return;
+    setImportando(true);setImportLog('Lendo arquivo...');setImportResult(null);
+    try{
+      let texto='';
+      if(file.name.match(/\.(xlsx|xls|csv)$/i)){
+        setImportLog('Lendo planilha...');
+        const buf=await file.arrayBuffer();
+        if(!window.XLSX){
+          await new Promise((res,rej)=>{
+            const s=document.createElement('script');
+            s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+            s.onload=res;s.onerror=rej;document.head.appendChild(s);
+          });
+        }
+        const wb=window.XLSX.read(buf,{type:'array'});
+        wb.SheetNames.forEach(nm=>{
+          texto+=`=== Aba: ${nm} ===\n`;
+          texto+=window.XLSX.utils.sheet_to_csv(wb.Sheets[nm],{blankrows:false})+'\n\n';
+        });
+      } else if(file.name.match(/\.pdf$/i)){
+        setImportLog('Lendo PDF...');
+        const buf=await file.arrayBuffer();
+        const bytes=new Uint8Array(buf);
+        let bin='';bytes.forEach(b=>bin+=String.fromCharCode(b));
+        const b64=btoa(bin);
+        setImportLog('Analisando PDF com IA...');
+        const res=await fetch('https://api.anthropic.com/v1/messages',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            model:'claude-sonnet-4-6',max_tokens:2000,
+            messages:[{role:'user',content:[
+              {type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},
+              {type:'text',text:'Extraia as escalas do ministério de louvor deste PDF. Retorne um JSON array com objetos: {data (DD/MM/AAAA), dia, culto, ceia (boolean), ministerio, vocal, musicos:{guitarra,teclado,baixo,bateria}}. APENAS o JSON, sem texto.'}
+            ]}]
+          })
+        });
+        const d=await res.json();
+        const json=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
+        try{
+          const arr=JSON.parse(json);
+          setImportResult(Array.isArray(arr)?arr:[arr]);
+          setImportLog(`✓ ${Array.isArray(arr)?arr.length:1} escala(s) encontrada(s) no PDF`);
+          return;
+        }catch{texto=json;}
+      } else {
+        texto=await file.text();
+      }
+      if(texto){
+        setImportLog('Analisando com IA...');
+        const res=await fetch('https://api.anthropic.com/v1/messages',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            model:'claude-sonnet-4-6',max_tokens:3000,
+            messages:[{role:'user',content:`Analise estes dados de escala de ministério de louvor e retorne JSON array. Cada objeto: {data (DD/MM/AAAA), dia, culto, ceia (bool), ministerio, vocal (nomes com " - "), musicos:{guitarra,teclado,baixo,bateria}}. APENAS o JSON.\n\n${texto.slice(0,8000)}`}]
+          })
+        });
+        const d=await res.json();
+        const json=(d.content?.[0]?.text||'[]').replace(/```json|```/g,'').trim();
+        try{
+          const arr=JSON.parse(json);
+          const list=Array.isArray(arr)?arr:[arr];
+          setImportResult(list);
+          setImportLog(`✓ ${list.length} escala(s) encontrada(s)`);
+        }catch{setImportLog('Não foi possível extrair. Verifique o formato do arquivo.');}
+      }
+    }catch(e){setImportLog('Erro: '+e.message);}
+    finally{setImportando(false);}
+  };
+
+  const salvarImportadas=async()=>{
+    if(!importResult?.length) return;
+    setSalvando(true);let count=0;
+    for(const e of importResult){
+      try{
+        await salvarEscala({
+          data:e.data||'',dia:e.dia||'Domingo',culto:e.culto||'2 cultos',
+          ceia:!!e.ceia,ministerio:e.ministerio||'',vocal:e.vocal||'',
+          musicos:{guitarra:e.musicos?.guitarra||'',teclado:e.musicos?.teclado||'',baixo:e.musicos?.baixo||'',bateria:e.musicos?.bateria||''},
+          repertorio:[],observacoes:'',confirmacoes:{}
+        });
+        count++;
+      }catch{}
+    }
+    showToast(`${count} escala(s) importada(s)!`);
+    setModalImport(false);setImportResult(null);setImportLog('');setSalvando(false);
+  };
 
   const hoje=hojeMs();
   const futuras=escalas.filter(e=>parseData(e.data).getTime()>=hoje).sort((a,b)=>parseData(a.data)-parseData(b.data));
@@ -1418,9 +1513,12 @@ function Escalas({escalas,setEscalas,salvarEscala,excluirEscala,atualizarRep,mus
     <div>
       <Toast msg={toast}/>
       {isMin&&(
-        <div style={{marginBottom:20}}>
-          <button className="btn btn-gold" style={{width:'100%',justifyContent:'center'}} onClick={()=>{setEditEsc(null);setFEsc(fBase);setModalEsc(true);}}>
+        <div style={{display:'flex',gap:8,marginBottom:20}}>
+          <button className="btn btn-gold" style={{flex:1,justifyContent:'center'}} onClick={()=>{setEditEsc(null);setFEsc(fBase);setModalEsc(true);}}>
             <Ico n="plus" s={16}/>Nova escala
+          </button>
+          <button className="btn btn-ghost" onClick={()=>{setModalImport(true);setImportResult(null);setImportLog('');}} title="Importar PDF ou Excel">
+            <Ico n="up" s={16}/>Importar
           </button>
         </div>
       )}
@@ -1439,7 +1537,94 @@ function Escalas({escalas,setEscalas,salvarEscala,excluirEscala,atualizarRep,mus
         </>
       )}
 
-      {/* Modal escala */}
+      {/* Modal importar */}
+      {modalImport&&(
+        <div className="overlay" onClick={e=>{if(e.target.classList.contains('overlay'))setModalImport(false)}}>
+          <div className="modal">
+            <div className="modal-handle"/>
+            <div className="modal-title">
+              Importar escala
+              <button onClick={()=>setModalImport(false)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text3)'}}><Ico n="x" s={20}/></button>
+            </div>
+
+            <div style={{fontSize:13,color:'var(--text2)',marginBottom:16,lineHeight:1.6}}>
+              Selecione um arquivo PDF ou Excel com as escalas do ministério. A IA vai extrair os dados automaticamente.
+            </div>
+
+            {/* Área de upload */}
+            {!importResult&&(
+              <div
+                className="upload-area"
+                style={{marginBottom:16}}
+                onClick={()=>importRef.current.click()}
+                onDragOver={e=>{e.preventDefault();e.currentTarget.classList.add('drag');}}
+                onDragLeave={e=>e.currentTarget.classList.remove('drag')}
+                onDrop={e=>{e.preventDefault();e.currentTarget.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)importarArquivo(f);}}
+              >
+                <input ref={importRef} type="file" accept=".pdf,.xlsx,.xls,.csv" style={{display:'none'}}
+                  onChange={e=>e.target.files[0]&&importarArquivo(e.target.files[0])}/>
+                <Ico n="up" s={36} st={{display:'block',margin:'0 auto 10px'}}/>
+                <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Selecionar arquivo</div>
+                <div style={{fontSize:12,color:'var(--text3)'}}>PDF, Excel (.xlsx) ou CSV</div>
+              </div>
+            )}
+
+            {/* Status */}
+            {(importando||importLog)&&(
+              <div style={{background:'var(--bg3)',borderRadius:10,padding:'12px 14px',marginBottom:16,fontSize:13,color:importLog.startsWith('✓')?'var(--teal)':importLog.startsWith('Erro')?'var(--red)':'var(--text2)'}}>
+                {importando&&<span style={{marginRight:8}}>⏳</span>}
+                {importLog}
+              </div>
+            )}
+
+            {/* Preview das escalas extraídas */}
+            {importResult&&importResult.length>0&&(
+              <div style={{marginBottom:16}}>
+                <div style={{fontSize:13,fontWeight:600,marginBottom:10,color:'var(--text)'}}>
+                  {importResult.length} escala(s) identificada(s) — revise antes de salvar:
+                </div>
+                <div style={{maxHeight:280,overflowY:'auto',display:'flex',flexDirection:'column',gap:8}}>
+                  {importResult.map((e,i)=>(
+                    <div key={i} style={{background:'var(--bg3)',borderRadius:12,padding:'12px',border:'1px solid var(--bg4)'}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                        <div style={{fontWeight:700,fontSize:14}}>{e.data} — {e.dia}</div>
+                        {e.ceia&&<span className="tag tag-gold" style={{fontSize:10}}>CEIA</span>}
+                      </div>
+                      <div style={{fontSize:12,color:'var(--text3)',lineHeight:1.8}}>
+                        <span style={{color:'var(--text2)'}}>Culto:</span> {e.culto}<br/>
+                        <span style={{color:'var(--text2)'}}>Ministro:</span> {e.ministerio||'—'}<br/>
+                        <span style={{color:'var(--text2)'}}>Vocal:</span> {e.vocal||'—'}<br/>
+                        {e.musicos?.guitarra&&<><span style={{color:'var(--text2)'}}>Guitarra:</span> {e.musicos.guitarra}<br/></>}
+                        {e.musicos?.teclado&&<><span style={{color:'var(--text2)'}}>Teclado:</span> {e.musicos.teclado}<br/></>}
+                        {e.musicos?.baixo&&<><span style={{color:'var(--text2)'}}>Baixo:</span> {e.musicos.baixo}<br/></>}
+                        {e.musicos?.bateria&&<><span style={{color:'var(--text2)'}}>Bateria:</span> {e.musicos.bateria}</>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{display:'flex',gap:8,marginTop:12}}>
+                  <button className="btn btn-ghost" style={{flex:1,justifyContent:'center'}} onClick={()=>{setImportResult(null);setImportLog('');}}>
+                    ← Tentar novamente
+                  </button>
+                  <button className="btn btn-gold" style={{flex:1,justifyContent:'center'}} onClick={salvarImportadas} disabled={salvando}>
+                    <Ico n="check" s={16}/>{salvando?'Salvando...':'Salvar todas'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {importResult&&importResult.length===0&&(
+              <div style={{textAlign:'center',padding:'16px',color:'var(--red)',fontSize:13}}>
+                Nenhuma escala encontrada no arquivo.
+                <button onClick={()=>{setImportResult(null);setImportLog('');}} style={{display:'block',margin:'8px auto 0',color:'var(--gold)',background:'none',border:'none',cursor:'pointer'}}>Tentar com outro arquivo</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal editar/criar escala */}
       {modalEsc&&(
         <div className="overlay" onClick={e=>{if(e.target.classList.contains('overlay'))setModalEsc(false)}}>
           <div className="modal">
