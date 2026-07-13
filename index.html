@@ -650,7 +650,7 @@ function TelaLogin({membros,onLogin}){
 }
 
 /* ─── DASHBOARD ───────────────────────────────── */
-function Dashboard({usuario,escalas,musicas,avisos,onPage,onPlay,atualizarRep}){
+function Dashboard({usuario,escalas,musicas,avisos,onPage,onPlay,atualizarRep,salvarMusica}){
   const minhasEscalas=escalasDoUsuario(usuario.nome,escalas);
   const proxMinha=minhasEscalas[0]||null;
   const minhaFuncao=proxMinha?funcaoNaEscala(usuario.nome,proxMinha):null;
@@ -659,7 +659,15 @@ function Dashboard({usuario,escalas,musicas,avisos,onPage,onPlay,atualizarRep}){
   const rep=proxMinha?.repertorio||[];
   const isMin=usuario.acesso==='admin'||usuario.acesso==='ministro';
   const [modalAdd,setModalAdd]=useState(false);
+  const [addAba,setAddAba]=useState('rep'); // 'rep' | 'yt'
   const [addBusca,setAddBusca]=useState('');
+  const [ytQ,setYtQ]=useState('');
+  const [ytRes,setYtRes]=useState([]);
+  const [ytLoad,setYtLoad]=useState(false);
+  const [ytSel,setYtSel]=useState(null);
+  const [ytForm,setYtForm]=useState({nome:'',artista:'',tom:'Ré'});
+  const [ytSalvando,setYtSalvando]=useState(false);
+  const ytTimer2=useRef(null);
   const [toast,setToast]=useState('');
   const [versiculo,setVersiculo]=useState(null);
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(''),2500)};
@@ -711,12 +719,75 @@ function Dashboard({usuario,escalas,musicas,avisos,onPage,onPlay,atualizarRep}){
     onPlay({...m,...full,tom:m.tom});
   };
 
+  const [selMusicas,setSelMusicas]=useState(new Set()); // IDs selecionados
+
   const addMusica=async m=>{
     if(!proxMinha) return;
     const nova={id:Date.now(),musicaId:m.id,nome:m.nome,artista:m.artista,tom:m.tom,capa:m.capa||'',youtubeId:m.youtubeId||''};
     await atualizarRep(proxMinha.id,[...rep,nova]);
-    setModalAdd(false); setAddBusca('');
+    setModalAdd(false);setAddBusca('');
     showToast(`"${m.nome}" adicionada!`);
+  };
+
+  const addMultiplas=async()=>{
+    if(!proxMinha||selMusicas.size===0) return;
+    const novas=musicas.filter(m=>selMusicas.has(m.id)&&!rep.some(r=>r.musicaId===m.id))
+      .map(m=>({id:Date.now()+m.id,musicaId:m.id,nome:m.nome,artista:m.artista,tom:m.tom,capa:m.capa||'',youtubeId:m.youtubeId||''}));
+    if(novas.length===0){showToast('Músicas já estão no repertório.');return;}
+    await atualizarRep(proxMinha.id,[...rep,...novas]);
+    setModalAdd(false);setAddBusca('');setSelMusicas(new Set());
+    showToast(`${novas.length} música(s) adicionada(s)!`);
+  };
+
+  const toggleSel=id=>{
+    setSelMusicas(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n;});
+  };
+
+  // Busca YouTube no Dashboard
+  const buscarYtDash=async q=>{
+    if(!q.trim()){setYtRes([]);return;}
+    setYtLoad(true);
+    try{
+      const r=await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&maxResults=5&key=${YT_KEY}`);
+      const d=await r.json();
+      if(!r.ok) throw new Error(d.error?.message||'Erro');
+      setYtRes(d.items.map(it=>({
+        id:it.id.videoId,
+        titulo:it.snippet.title,
+        canal:it.snippet.channelTitle,
+        thumb:it.snippet.thumbnails.medium?.url||it.snippet.thumbnails.default?.url,
+      })));
+    }catch(e){setYtRes([]);}
+    finally{setYtLoad(false);}
+  };
+
+  const selecionarYtDash=it=>{
+    setYtSel(it);
+    const sep=it.titulo.match(/(.*?)[\-–|](.*)/);
+    setYtForm({
+      nome:(sep?sep[1]:it.titulo).trim(),
+      artista:(sep?sep[2]:it.canal).trim().replace(/\s*(Oficial|Official|HD)\s*/gi,'').trim(),
+      tom:'Ré',
+    });
+  };
+
+  // Salva música nova via YouTube e já adiciona ao rep
+  const salvarYtDash=async()=>{
+    if(!ytSel||!ytForm.nome.trim()||!proxMinha) return;
+    setYtSalvando(true);
+    try{
+      // Salva na tabela musicas
+      const nova=await salvarMusica({
+        nome:ytForm.nome,artista:ytForm.artista,tom:ytForm.tom,
+        bpm:0,youtubeId:ytSel.id,capa:ytSel.thumb,cifraUrl:'',
+      });
+      // Adiciona ao repertório da escala
+      const entrada={id:Date.now(),musicaId:nova.id,nome:nova.nome,artista:nova.artista,tom:nova.tom,capa:nova.capa||'',youtubeId:nova.youtubeId||''};
+      await atualizarRep(proxMinha.id,[...rep,entrada]);
+      setModalAdd(false);setYtQ('');setYtRes([]);setYtSel(null);
+      showToast(`"${nova.nome}" adicionada ao repertório!`);
+    }catch(e){showToast('Erro: '+e.message);}
+    finally{setYtSalvando(false);}
   };
   const remMusica=async entrada=>{
     if(!proxMinha) return;
@@ -839,42 +910,129 @@ function Dashboard({usuario,escalas,musicas,avisos,onPage,onPlay,atualizarRep}){
 
       {/* Modal — adicionar música ao repertório direto do dashboard */}
       {modalAdd&&proxMinha&&(
-        <div className="overlay" onClick={e=>{if(e.target.classList.contains('overlay')){setModalAdd(false);setAddBusca('');}}}>
+        <div className="overlay" onClick={e=>{if(e.target.classList.contains('overlay')){setModalAdd(false);setAddBusca('');setYtQ('');setYtRes([]);setYtSel(null);}}}>
           <div className="modal">
             <div className="modal-handle"/>
             <div className="modal-title">
               Adicionar ao repertório
-              <button onClick={()=>{setModalAdd(false);setAddBusca('');}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text3)'}}><Ico n="x" s={20}/></button>
+              <button onClick={()=>{setModalAdd(false);setAddBusca('');setYtQ('');setYtRes([]);setYtSel(null);}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text3)'}}><Ico n="x" s={20}/></button>
             </div>
             <div style={{fontSize:12,color:'var(--text3)',marginBottom:12}}>
               Escala: <strong style={{color:'var(--text)'}}>{proxMinha.dia} · {proxMinha.data}</strong>
             </div>
-            <div className="search-wrap" style={{marginBottom:14}}>
-              <Ico n="search"/>
-              <input className="search-inp" placeholder="Buscar música..." value={addBusca} onChange={e=>setAddBusca(e.target.value)} autoFocus/>
+
+            {/* Abas */}
+            <div className="tabs" style={{marginBottom:14}}>
+              <div className={`tab${addAba==='rep'?' active':''}`} onClick={()=>setAddAba('rep')}>📋 Do repertório</div>
+              <div className={`tab${addAba==='yt'?' active':''}`} onClick={()=>setAddAba('yt')}>🔴 Buscar no YouTube</div>
             </div>
-            <div style={{display:'flex',flexDirection:'column',gap:8,maxHeight:320,overflowY:'auto'}}>
-              {musicas.filter(m=>m.nome.toLowerCase().includes(addBusca.toLowerCase())||m.artista.toLowerCase().includes(addBusca.toLowerCase())).map(m=>{
-                const ja=rep.some(r=>r.musicaId===m.id);
-                return(
-                  <button key={m.id} onClick={()=>!ja&&addMusica(m)}
-                    style={{display:'flex',alignItems:'center',gap:12,padding:'12px',borderRadius:12,background:'var(--bg3)',border:'1px solid var(--bg4)',cursor:ja?'default':'pointer',opacity:ja?0.5:1,width:'100%',textAlign:'left',transition:'border-color 0.1s'}}
-                    onMouseEnter={e=>{if(!ja)e.currentTarget.style.borderColor='var(--gold)';}}
-                    onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--bg4)';}}
-                  >
-                    <div className="musica-thumb">
-                      {m.capa?<img src={m.capa} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<Ico n="music" s={16} c="var(--text3)"/>}
+
+            {/* Aba repertório */}
+            {addAba==='rep'&&(
+              <>
+                <div className="search-wrap" style={{marginBottom:14}}>
+                  <Ico n="search"/>
+                  <input className="search-inp" placeholder="Buscar música cadastrada..." value={addBusca} onChange={e=>setAddBusca(e.target.value)} autoFocus/>
+                </div>
+                <div style={{display:'flex',flexDirection:'column',gap:6,maxHeight:280,overflowY:'auto',marginBottom:12}}>
+                  {musicas.filter(m=>m.nome.toLowerCase().includes(addBusca.toLowerCase())||m.artista.toLowerCase().includes(addBusca.toLowerCase())).map(m=>{
+                    const ja=rep.some(r=>r.musicaId===m.id);
+                    const sel=selMusicas.has(m.id);
+                    return(
+                      <button key={m.id} onClick={()=>!ja&&toggleSel(m.id)}
+                        style={{display:'flex',alignItems:'center',gap:12,padding:'10px 12px',borderRadius:12,background:sel?'var(--gold-bg)':'var(--bg3)',border:`1px solid ${sel?'var(--gold-bdr)':ja?'var(--bg4)':'var(--bg4)'}`,cursor:ja?'default':'pointer',opacity:ja?0.4:1,width:'100%',textAlign:'left',transition:'all 0.1s'}}
+                      >
+                        {/* Checkbox */}
+                        <div style={{width:20,height:20,borderRadius:6,border:`2px solid ${sel?'var(--gold)':ja?'var(--bg3)':'var(--text3)'}`,background:sel?'var(--gold)':ja?'var(--bg3)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all 0.1s'}}>
+                          {(sel||ja)&&<Ico n="check" s={12} c={ja?'var(--text4)':'#000'}/>}
+                        </div>
+                        <div className="musica-thumb">
+                          {m.capa?<img src={m.capa} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<Ico n="music" s={14} c="var(--text3)"/>}
+                        </div>
+                        <div className="musica-info"><div style={{fontSize:13,fontWeight:500}}>{m.nome}</div><div style={{fontSize:11,color:'var(--text3)'}}>{m.artista}</div></div>
+                        <span className="tom-badge" style={{fontSize:10,padding:'2px 8px'}}>{m.tom}</span>
+                        {ja&&<span className="tag tag-teal" style={{fontSize:9}}>✓ adicionada</span>}
+                      </button>
+                    );
+                  })}
+                  {musicas.filter(m=>m.nome.toLowerCase().includes(addBusca.toLowerCase())||m.artista.toLowerCase().includes(addBusca.toLowerCase())).length===0&&(
+                    <div style={{textAlign:'center',padding:'20px',color:'var(--text3)',fontSize:13}}>
+                      Nenhuma encontrada.
+                      <button onClick={()=>setAddAba('yt')} style={{display:'block',margin:'8px auto 0',color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13}}>Buscar no YouTube →</button>
                     </div>
-                    <div className="musica-info"><div style={{fontSize:14,fontWeight:500}}>{m.nome}</div><div style={{fontSize:12,color:'var(--text3)'}}>{m.artista}</div></div>
-                    <span className="tom-badge">{m.tom}</span>
-                    {ja&&<span className="tag tag-teal" style={{fontSize:10}}>✓</span>}
+                  )}
+                </div>
+                {selMusicas.size>0&&(
+                  <button className="btn btn-gold" style={{width:'100%',justifyContent:'center'}} onClick={addMultiplas}>
+                    <Ico n="plus" s={16}/>Adicionar {selMusicas.size} música{selMusicas.size>1?'s':''} ao repertório
                   </button>
-                );
-              })}
-              {musicas.filter(m=>m.nome.toLowerCase().includes(addBusca.toLowerCase())).length===0&&(
-                <div style={{textAlign:'center',padding:'20px',color:'var(--text3)',fontSize:13}}>Nenhuma música encontrada</div>
-              )}
-            </div>
+                )}
+              </>
+            )}
+
+            {/* Aba YouTube */}
+            {addAba==='yt'&&(
+              <>
+                <div className="search-wrap" style={{marginBottom:12}}>
+                  <Ico n="search"/>
+                  <input className="search-inp" placeholder="Nome da música + artista..." value={ytQ}
+                    onChange={e=>{
+                      setYtQ(e.target.value);setYtSel(null);
+                      clearTimeout(ytTimer2.current);
+                      ytTimer2.current=setTimeout(()=>buscarYtDash(e.target.value),700);
+                    }} autoFocus={addAba==='yt'}/>
+                </div>
+
+                {ytLoad&&<div style={{textAlign:'center',padding:'16px',color:'var(--text3)',fontSize:13}}>Buscando...</div>}
+
+                {/* Resultados */}
+                {!ytLoad&&ytRes.length>0&&(
+                  <div style={{display:'flex',flexDirection:'column',gap:8,maxHeight:200,overflowY:'auto',marginBottom:12}}>
+                    {ytRes.map(it=>(
+                      <button key={it.id} onClick={()=>selecionarYtDash(it)}
+                        style={{display:'flex',gap:10,padding:'10px',borderRadius:12,background:ytSel?.id===it.id?'var(--gold-bg)':'var(--bg3)',border:`1px solid ${ytSel?.id===it.id?'var(--gold-bdr)':'var(--bg4)'}`,cursor:'pointer',textAlign:'left',width:'100%',transition:'all 0.1s'}}
+                      >
+                        <img src={it.thumb} alt="" style={{width:64,height:36,borderRadius:6,objectFit:'cover',flexShrink:0}}/>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:12,fontWeight:500,color:ytSel?.id===it.id?'var(--gold)':'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{it.titulo}</div>
+                          <div style={{fontSize:11,color:'var(--text3)'}}>{it.canal}</div>
+                        </div>
+                        {ytSel?.id===it.id&&<Ico n="check" s={16} c="var(--gold)" st={{flexShrink:0}}/>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Form após selecionar */}
+                {ytSel&&(
+                  <div style={{borderTop:'1px solid var(--bg3)',paddingTop:12}}>
+                    <div style={{fontSize:12,color:'var(--text3)',marginBottom:10}}>Confirme os detalhes:</div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
+                      <div style={{gridColumn:'1/-1'}}>
+                        <label className="form-lbl">Nome</label>
+                        <input className="inp" value={ytForm.nome} onChange={e=>setYtForm(f=>({...f,nome:e.target.value}))}/>
+                      </div>
+                      <div style={{gridColumn:'1/-1'}}>
+                        <label className="form-lbl">Artista</label>
+                        <input className="inp" value={ytForm.artista} onChange={e=>setYtForm(f=>({...f,artista:e.target.value}))}/>
+                      </div>
+                      <div>
+                        <label className="form-lbl">Tom</label>
+                        <select className="inp" value={ytForm.tom} onChange={e=>setYtForm(f=>({...f,tom:e.target.value}))}>
+                          {TONS.map(t=><option key={t}>{t}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <button className="btn btn-gold" style={{width:'100%',justifyContent:'center'}} onClick={salvarYtDash} disabled={ytSalvando||!ytForm.nome.trim()}>
+                      <Ico n="plus" s={16}/>{ytSalvando?'Salvando...':'Adicionar ao repertório'}
+                    </button>
+                  </div>
+                )}
+
+                {!ytLoad&&!ytQ&&<div style={{textAlign:'center',padding:'20px',color:'var(--text3)',fontSize:13}}>Digite o nome da música para buscar</div>}
+                {!ytLoad&&ytQ&&ytRes.length===0&&<div style={{textAlign:'center',padding:'20px',color:'var(--text3)',fontSize:13}}>Nenhum resultado</div>}
+              </>
+            )}
           </div>
         </div>
       )}
@@ -955,13 +1113,25 @@ function Escalas({escalas,setEscalas,salvarEscala,excluirEscala,atualizarRep,mus
     await atualizarRep(selAtual.id,rep);
   };
 
+  const [selMusicasEsc,setSelMusicasEsc]=useState(new Set());
+
   const addMusica=async m=>{
-    const nova={id:Date.now(),musicaId:m.id,nome:m.nome,artista:m.artista,tom:m.tom};
-    const novoRep=[...rep,nova];
-    await atualizarRep(selAtual.id,novoRep);
+    const nova={id:Date.now(),musicaId:m.id,nome:m.nome,artista:m.artista,tom:m.tom,capa:m.capa||'',youtubeId:m.youtubeId||''};
+    await atualizarRep(selAtual.id,[...rep,nova]);
     setModalMus(false);setBusMus('');
     showToast(`"${m.nome}" adicionada!`);
   };
+
+  const addMultiplasEsc=async()=>{
+    const novas=musicas.filter(m=>selMusicasEsc.has(m.id)&&!rep.some(r=>r.musicaId===m.id))
+      .map(m=>({id:Date.now()+m.id,musicaId:m.id,nome:m.nome,artista:m.artista,tom:m.tom,capa:m.capa||'',youtubeId:m.youtubeId||''}));
+    if(!novas.length){showToast('Músicas já estão no repertório.');return;}
+    await atualizarRep(selAtual.id,[...rep,...novas]);
+    setModalMus(false);setBusMus('');setSelMusicasEsc(new Set());
+    showToast(`${novas.length} música(s) adicionada(s)!`);
+  };
+
+  const toggleSelEsc=id=>setSelMusicasEsc(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n;});
   const remMusica=async entrada=>{
     const novoRep=rep.filter(r=>r.id!==entrada.id);
     await atualizarRep(selAtual.id,novoRep);
@@ -1191,31 +1361,52 @@ function Escalas({escalas,setEscalas,salvarEscala,excluirEscala,atualizarRep,mus
 
         {/* Modal músicas */}
         {modalMus&&(
-          <div className="overlay" onClick={e=>{if(e.target.classList.contains('overlay')){setModalMus(false);setBusMus('');}}}>
+          <div className="overlay" onClick={e=>{if(e.target.classList.contains('overlay')){setModalMus(false);setBusMus('');setSelMusicasEsc(new Set());}}}>
             <div className="modal">
               <div className="modal-handle"/>
-              <div className="modal-title">Adicionar ao repertório<button onClick={()=>{setModalMus(false);setBusMus('');}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text3)'}}><Ico n="x" s={20}/></button></div>
-              <div className="search-wrap" style={{marginBottom:14}}>
+              <div className="modal-title">
+                Adicionar ao repertório
+                <button onClick={()=>{setModalMus(false);setBusMus('');setSelMusicasEsc(new Set());}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text3)'}}><Ico n="x" s={20}/></button>
+              </div>
+              {selMusicasEsc.size>0&&(
+                <div style={{background:'var(--gold-bg)',border:'1px solid var(--gold-bdr)',borderRadius:10,padding:'8px 12px',marginBottom:10,fontSize:13,color:'var(--gold)',fontWeight:600}}>
+                  {selMusicasEsc.size} música{selMusicasEsc.size>1?'s':''} selecionada{selMusicasEsc.size>1?'s':''}
+                </div>
+              )}
+              <div className="search-wrap" style={{marginBottom:12}}>
                 <Ico n="search"/>
                 <input className="search-inp" placeholder="Buscar música..." value={busMus} onChange={e=>setBusMus(e.target.value)} autoFocus/>
               </div>
-              <div style={{display:'flex',flexDirection:'column',gap:8,maxHeight:320,overflowY:'auto'}}>
+              <div style={{display:'flex',flexDirection:'column',gap:6,maxHeight:300,overflowY:'auto',marginBottom:12}}>
                 {musicas.filter(m=>m.nome.toLowerCase().includes(busMus.toLowerCase())||m.artista.toLowerCase().includes(busMus.toLowerCase())).map(m=>{
                   const ja=rep.some(r=>r.musicaId===m.id);
+                  const sel=selMusicasEsc.has(m.id);
                   return(
-                    <button key={m.id} onClick={()=>!ja&&addMusica(m)}
-                      style={{display:'flex',alignItems:'center',gap:12,padding:'12px',borderRadius:12,background:'var(--bg3)',border:'1px solid var(--bg4)',cursor:ja?'default':'pointer',opacity:ja?0.5:1,width:'100%',textAlign:'left',transition:'border-color 0.1s'}}
-                      onMouseEnter={e=>{if(!ja)e.currentTarget.style.borderColor='var(--gold)';}}
-                      onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--bg4)';}}
+                    <button key={m.id} onClick={()=>!ja&&toggleSelEsc(m.id)}
+                      style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:12,background:sel?'var(--gold-bg)':'var(--bg3)',border:`1px solid ${sel?'var(--gold-bdr)':'var(--bg4)'}`,cursor:ja?'default':'pointer',opacity:ja?0.4:1,width:'100%',textAlign:'left',transition:'all 0.1s'}}
                     >
-                      <div className="musica-thumb"><Ico n="music" s={16} c="var(--text3)"/></div>
-                      <div className="musica-info"><div style={{fontSize:14,fontWeight:500}}>{m.nome}</div><div style={{fontSize:12,color:'var(--text3)'}}>{m.artista}</div></div>
-                      <span className="tom-badge">{m.tom}</span>
-                      {ja&&<span className="tag tag-teal" style={{fontSize:10}}>✓</span>}
+                      <div style={{width:20,height:20,borderRadius:6,border:`2px solid ${sel?'var(--gold)':ja?'var(--bg3)':'var(--text3)'}`,background:sel?'var(--gold)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all 0.1s'}}>
+                        {(sel||ja)&&<Ico n="check" s={12} c={ja?'var(--text4)':'#000'}/>}
+                      </div>
+                      <div className="musica-thumb">
+                        {m.capa?<img src={m.capa} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<Ico n="music" s={14} c="var(--text3)"/>}
+                      </div>
+                      <div className="musica-info"><div style={{fontSize:13,fontWeight:500}}>{m.nome}</div><div style={{fontSize:11,color:'var(--text3)'}}>{m.artista}</div></div>
+                      <span className="tom-badge" style={{fontSize:10,padding:'2px 8px'}}>{m.tom}</span>
+                      {ja&&<span className="tag tag-teal" style={{fontSize:9}}>✓</span>}
                     </button>
                   );
                 })}
               </div>
+              <button
+                className={`btn ${selMusicasEsc.size>0?'btn-gold':'btn-ghost'}`}
+                style={{width:'100%',justifyContent:'center'}}
+                onClick={addMultiplasEsc}
+                disabled={selMusicasEsc.size===0}
+              >
+                <Ico n="plus" s={16}/>
+                {selMusicasEsc.size>0?`Adicionar ${selMusicasEsc.size} música${selMusicasEsc.size>1?'s':''}`:' Selecione músicas acima'}
+              </button>
             </div>
           </div>
         )}
@@ -1867,23 +2058,45 @@ const RAPIDOS=[
 ];
 
 function Biblia(){
-  const [view,setView]=useState('home'); // home | livros | cap
+  const [view,setView]=useState('home'); // home | livros | seletor | cap
   const [livro,setLivro]=useState(null);
   const [cap,setCap]=useState(1);
+  const [verAlvo,setVerAlvo]=useState(null); // versículo para destacar ao abrir
   const [texto,setTexto]=useState(null);
   const [loading,setLoading]=useState(false);
   const [erro,setErro]=useState('');
   const [busca,setBusca]=useState('');
   const [vhigh,setVhigh]=useState(null);
   const [fontSize,setFontSize]=useState(16);
+  const [capInput,setCapInput]=useState('');
+  const [verInput,setVerInput]=useState('');
   const topoRef=useRef();
+  const verRef=useRef({});
 
   const filtrados=LIVROS.filter(l=>l.n.toLowerCase().includes(busca.toLowerCase()));
 
-  const buscarCap=async(l,c)=>{
-    setLivro(l);setCap(c);setTexto(null);setErro('');setLoading(true);setView('cap');setVhigh(null);
+  // Número de capítulos por livro (aproximado — suficiente para validação)
+  const CAPS={
+    'Gênesis':50,'Êxodo':40,'Levítico':27,'Números':36,'Deuteronômio':34,
+    'Josué':24,'Juízes':21,'Rute':4,'1 Samuel':31,'2 Samuel':24,
+    '1 Reis':22,'2 Reis':25,'1 Crônicas':29,'2 Crônicas':36,'Esdras':10,
+    'Neemias':13,'Ester':10,'Jó':42,'Salmos':150,'Provérbios':31,
+    'Eclesiastes':12,'Cantares':8,'Isaías':66,'Jeremias':52,'Lamentações':5,
+    'Ezequiel':48,'Daniel':12,'Oséias':14,'Joel':3,'Amós':9,'Obadias':1,
+    'Jonas':4,'Miquéias':7,'Naum':3,'Habacuque':3,'Sofonias':3,'Ageu':2,
+    'Zacarias':14,'Malaquias':4,'Mateus':28,'Marcos':16,'Lucas':24,'João':21,
+    'Atos':28,'Romanos':16,'1 Coríntios':16,'2 Coríntios':13,'Gálatas':6,
+    'Efésios':6,'Filipenses':4,'Colossenses':4,'1 Tessalonicenses':5,
+    '2 Tessalonicenses':3,'1 Timóteo':6,'2 Timóteo':4,'Tito':3,'Filemom':1,
+    'Hebreus':13,'Tiago':5,'1 Pedro':5,'2 Pedro':3,'1 João':5,'2 João':1,
+    '3 João':1,'Judas':1,'Apocalipse':22,
+  };
+
+  const abrirSeletor=l=>{setLivro(l);setCapInput('');setVerInput('');setVhigh(null);setTexto(null);setView('seletor');};
+
+  const buscarCap=async(l,c,ver=null)=>{
+    setLivro(l);setCap(c);setTexto(null);setErro('');setLoading(true);setView('cap');setVhigh(ver);setVerAlvo(ver);
     try{
-      // Tenta API em português (almeida)
       const q=encodeURIComponent(`${l.n} ${c}`);
       const r=await fetch(`https://bible-api.com/${q}?translation=almeida`);
       const d=await r.json();
@@ -1891,7 +2104,6 @@ function Biblia(){
       setTexto(d);
     }catch{
       try{
-        // Fallback sem tradução específica
         const q=encodeURIComponent(`${l.n} ${c}`);
         const r=await fetch(`https://bible-api.com/${q}`);
         const d=await r.json();
@@ -1899,8 +2111,18 @@ function Biblia(){
         setTexto(d);
       }catch(e){setErro('Não foi possível carregar. Verifique sua conexão.');}
     }
-    finally{setLoading(false);topoRef.current?.scrollTo(0,0);}
+    finally{setLoading(false);}
   };
+
+  // Scroll para versículo alvo após carregar
+  useEffect(()=>{
+    if(verAlvo&&texto){
+      setTimeout(()=>{
+        verRef.current[verAlvo]?.scrollIntoView({behavior:'smooth',block:'center'});
+        setVhigh(verAlvo);
+      },300);
+    }
+  },[texto,verAlvo]);
 
   const navCap=dir=>{const c2=cap+dir;if(c2>=1)buscarCap(livro,c2);};
 
@@ -1908,7 +2130,6 @@ function Biblia(){
     <div>
       <div style={{fontSize:20,fontWeight:800,marginBottom:6}}>Bíblia Sagrada</div>
       <div style={{fontSize:13,color:'var(--text3)',marginBottom:20}}>Almeida Revista e Corrigida</div>
-
       <div style={{marginBottom:20}}>
         <div style={{fontSize:12,color:'var(--text3)',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:10}}>Acesso rápido</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
@@ -1927,7 +2148,6 @@ function Biblia(){
           })}
         </div>
       </div>
-
       <button className="btn btn-gold" style={{width:'100%',justifyContent:'center'}} onClick={()=>setView('livros')}>
         <Ico n="search" s={16}/>Ver todos os livros
       </button>
@@ -1950,7 +2170,7 @@ function Biblia(){
             <div style={{fontSize:12,color:'var(--text3)',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:10}}>{label}</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
               {lista.map(l=>(
-                <button key={l.n} onClick={()=>buscarCap(l,1)}
+                <button key={l.n} onClick={()=>abrirSeletor(l)}
                   style={{padding:'10px 14px',borderRadius:10,background:'var(--surface)',border:'1px solid var(--bg3)',cursor:'pointer',textAlign:'left',fontSize:14,fontWeight:500,transition:'border-color 0.1s'}}
                   onMouseEnter={e=>e.currentTarget.style.borderColor='var(--gold)'}
                   onMouseLeave={e=>e.currentTarget.style.borderColor='var(--bg3)'}
@@ -1962,6 +2182,69 @@ function Biblia(){
       )}
     </div>
   );
+
+  // ── Seletor de capítulo e versículo ──────────────────────────
+  if(view==='seletor'){
+    const totalCaps=CAPS[livro?.n]||150;
+    const caps=Array.from({length:totalCaps},(_,i)=>i+1);
+    const capSel=parseInt(capInput)||null;
+
+    return(
+      <div>
+        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
+          <button onClick={()=>setView('livros')} className="btn-icon"><Ico n="chevron" s={16} st={{transform:'rotate(180deg)'}}/></button>
+          <div>
+            <div style={{fontSize:18,fontWeight:800}}>{livro?.n}</div>
+            <div style={{fontSize:13,color:'var(--text3)'}}>{totalCaps} capítulos</div>
+          </div>
+        </div>
+
+        {/* Campo de busca rápida cap:ver */}
+        <div style={{background:'var(--surface)',border:'1px solid var(--bg3)',borderRadius:14,padding:'16px',marginBottom:20}}>
+          <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>Ir para capítulo e versículo</div>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:11,color:'var(--text3)',marginBottom:4}}>Capítulo</div>
+              <input className="inp" type="number" min="1" max={totalCaps}
+                placeholder={`1–${totalCaps}`}
+                value={capInput} onChange={e=>setCapInput(e.target.value)}
+                style={{textAlign:'center',fontSize:18,fontWeight:700}}/>
+            </div>
+            <div style={{fontSize:20,color:'var(--text3)',paddingTop:20}}>:</div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:11,color:'var(--text3)',marginBottom:4}}>Versículo (opcional)</div>
+              <input className="inp" type="number" min="1"
+                placeholder="1, 2, 3..."
+                value={verInput} onChange={e=>setVerInput(e.target.value)}
+                style={{textAlign:'center',fontSize:18,fontWeight:700}}/>
+            </div>
+          </div>
+          <button
+            className="btn btn-gold"
+            style={{width:'100%',justifyContent:'center',marginTop:14}}
+            disabled={!capInput||parseInt(capInput)<1||parseInt(capInput)>totalCaps}
+            onClick={()=>buscarCap(livro,parseInt(capInput),verInput?parseInt(verInput):null)}
+          >
+            <Ico n="book" s={16}/>Ir para {livro?.n} {capInput}{verInput?`:${verInput}`:''}
+          </button>
+        </div>
+
+        {/* Grid de capítulos */}
+        <div style={{fontSize:12,color:'var(--text3)',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:10}}>
+          Ou escolha um capítulo
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:6}}>
+          {caps.map(c=>(
+            <button key={c} onClick={()=>buscarCap(livro,c)}
+              style={{height:44,borderRadius:10,background:'var(--surface)',border:'1px solid var(--bg3)',fontSize:14,fontWeight:600,color:'var(--text)',cursor:'pointer',transition:'all 0.1s'}}
+              onMouseEnter={e=>{e.currentTarget.style.background='var(--gold-bg)';e.currentTarget.style.borderColor='var(--gold-bdr)';e.currentTarget.style.color='var(--gold)';}}
+              onMouseLeave={e=>{e.currentTarget.style.background='var(--surface)';e.currentTarget.style.borderColor='var(--bg3)';e.currentTarget.style.color='var(--text)';}}
+            >{c}</button>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // Leitura
   return(
@@ -1983,7 +2266,9 @@ function Biblia(){
         <>
           <div style={{lineHeight:2,fontSize:fontSize,color:'var(--text)'}}>
             {texto.verses?.map(v=>(
-              <span key={v.verse} onClick={()=>setVhigh(vhigh===v.verse?null:v.verse)}
+              <span key={v.verse}
+                ref={el=>verRef.current[v.verse]=el}
+                onClick={()=>setVhigh(vhigh===v.verse?null:v.verse)}
                 style={{cursor:'pointer',background:vhigh===v.verse?'rgba(200,168,75,0.18)':'transparent',borderRadius:4,padding:'1px 2px',transition:'background 0.15s',display:'inline'}}>
                 <sup style={{fontSize:fontSize*0.6,color:'var(--gold)',fontWeight:700,marginRight:2}}>{v.verse}</sup>
                 {v.text}{' '}
@@ -2321,7 +2606,7 @@ function App(){
         </div>
 
         <div className="content">
-          {page==='home'    &&!isVis&&<Dashboard usuario={usuario} escalas={escalas} musicas={musicas} avisos={avisosVis} onPage={navPage} onPlay={openPlayer} atualizarRep={atualizarRep}/>}
+          {page==='home'    &&!isVis&&<Dashboard usuario={usuario} escalas={escalas} musicas={musicas} avisos={avisosVis} onPage={navPage} onPlay={openPlayer} atualizarRep={atualizarRep} salvarMusica={salvarMusica}/>}
           {page==='escalas' &&<Escalas escalas={escalas} setEscalas={setEscalas} salvarEscala={salvarEscala} excluirEscala={excluirEscala} atualizarRep={atualizarRep} musicas={musicas} salvarAviso={salvarAviso} usuario={usuario}/>}
           {page==='musicas' &&<Musicas musicas={musicas} salvarMusica={salvarMusica} excluirMusica={excluirMusica} onPlay={openPlayer} usuario={usuario}/>}
           {page==='avisos'  &&!isVis&&<Avisos avisos={avisosVis} setAvisos={setAvisos} salvarAviso={salvarAviso} excluirAviso={excluirAviso} membros={membros} usuario={usuario} onPage={navPage}/>}
