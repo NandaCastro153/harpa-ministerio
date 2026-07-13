@@ -474,6 +474,7 @@ const Ico = ({n,s=20,c,st={}})=>{
     info:     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
     chevron:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>,
     logout:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+    book:     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
   };
   return <span style={{display:'inline-flex',alignItems:'center',width:s,height:s,color:c||'currentColor',...st}}>{ic[n]||ic.music}</span>;
 };
@@ -653,7 +654,6 @@ function Dashboard({usuario,escalas,musicas,avisos,onPage,onPlay,atualizarRep}){
   const minhasEscalas=escalasDoUsuario(usuario.nome,escalas);
   const proxMinha=minhasEscalas[0]||null;
   const minhaFuncao=proxMinha?funcaoNaEscala(usuario.nome,proxMinha):null;
-  const proxGeral=proxEscalaGeral(escalas);
   const naoLidos=avisos.filter(a=>!a.lido).length;
   const hora=new Date().getHours();
   const rep=proxMinha?.repertorio||[];
@@ -661,12 +661,54 @@ function Dashboard({usuario,escalas,musicas,avisos,onPage,onPlay,atualizarRep}){
   const [modalAdd,setModalAdd]=useState(false);
   const [addBusca,setAddBusca]=useState('');
   const [toast,setToast]=useState('');
+  const [versiculo,setVersiculo]=useState(null);
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(''),2500)};
 
-  // Busca dados completos da música (com youtubeId) antes de tocar
+  // Lista de versículos de louvor/adoração — rotaciona pelo dia do ano
+  const VERSICULOS=[
+    {ref:'Salmos 150:6',    texto:'Tudo que tem fôlego louve ao Senhor! Aleluia!'},
+    {ref:'Salmos 95:1',     texto:'Vinde, cantemos ao Senhor com alegria; aclamemos a rocha da nossa salvação.'},
+    {ref:'Salmos 34:1',     texto:'Bendirei ao Senhor em todo o tempo; o seu louvor estará sempre nos meus lábios.'},
+    {ref:'Salmos 100:1-2',  texto:'Celebrai ao Senhor com alegria, todos os da terra. Servi ao Senhor com alegria; vinde à sua presença com cânticos.'},
+    {ref:'Efésios 5:19',    texto:'Falando entre vós em salmos, hinos e cânticos espirituais; cantando e louvando ao Senhor no vosso coração.'},
+    {ref:'Salmos 22:3',     texto:'Tu, porém, és santo, tu que habitas entre os louvores de Israel.'},
+    {ref:'Colossenses 3:16',texto:'A palavra de Cristo habite em vós ricamente; ensinai-vos e exortai-vos uns aos outros com salmos, hinos e cânticos espirituais.'},
+    {ref:'Salmos 47:6',     texto:'Cantai louvores a Deus, cantai louvores; cantai louvores ao nosso Rei, cantai louvores.'},
+    {ref:'Hebreus 13:15',   texto:'Por meio dele, pois, ofereçamos sempre a Deus sacrifício de louvor, que é o fruto dos lábios que confessam o seu nome.'},
+    {ref:'Salmos 63:3',     texto:'Pois a tua misericórdia é melhor do que a vida; os meus lábios te louvarão.'},
+    {ref:'Apocalipse 4:11', texto:'Digno és, Senhor e Deus nosso, de receber a glória, a honra e o poder.'},
+    {ref:'Salmos 145:3',    texto:'Grande é o Senhor, e mui digno de louvor; a sua grandeza é insondável.'},
+    {ref:'Isaías 12:5',     texto:'Cantai ao Senhor, pois fez coisas magníficas; seja isso sabido em toda a terra.'},
+    {ref:'Salmos 9:1',      texto:'Louvar-te-ei, ó Senhor, de todo o meu coração; contarei todas as tuas maravilhas.'},
+    {ref:'Salmos 103:1',    texto:'Bendize, ó minha alma, ao Senhor, e tudo o que há em mim bendiga o seu santo nome.'},
+    {ref:'João 4:24',       texto:'Deus é Espírito, e importa que os que o adoram o adorem em espírito e em verdade.'},
+    {ref:'Salmos 27:6',     texto:'E agora a minha cabeça se erguerá acima dos meus inimigos; oferecerei no seu tabernáculo sacrifícios com júbilo; cantarei e salmodiarei ao Senhor.'},
+    {ref:'Salmos 108:1',    texto:'O meu coração está firme, ó Deus; cantarei e salmodiarei até com a minha glória.'},
+    {ref:'1 Crônicas 16:9', texto:'Cantai-lhe, salmodiai-lhe; falai de todas as suas maravilhas.'},
+    {ref:'Salmos 96:1',     texto:'Cantai ao Senhor um cântico novo; cantai ao Senhor, todos os da terra.'},
+    {ref:'Salmos 33:3',     texto:'Cantai-lhe um cântico novo; tocai com destreza e com júbilo.'},
+    {ref:'Salmos 30:4',     texto:'Cantai louvores ao Senhor, vós que sois seus santos, e dai graças à memória da sua santidade.'},
+    {ref:'Apocalipse 5:13', texto:'E ouvi toda criatura que há no céu, e na terra, e debaixo da terra, e sobre o mar, e tudo o que há neles, dizendo: Ao que está sentado no trono, e ao Cordeiro, seja o louvor.'},
+    {ref:'Salmos 66:4',     texto:'Toda a terra te adore e cante louvores a ti; salmodiem o teu nome.'},
+    {ref:'Neemias 12:43',   texto:'E naquele dia ofereceram grandes sacrifícios e se alegraram, porque Deus os alegrara com grande alegria.'},
+    {ref:'Salmos 149:1',    texto:'Aleluia! Cantai ao Senhor um cântico novo; o seu louvor na congregação dos santos.'},
+    {ref:'Atos 16:25',      texto:'Perto da meia-noite, Paulo e Silas oravam e cantavam hinos a Deus.'},
+    {ref:'Salmos 57:9',     texto:'Louvar-te-ei entre os povos, Senhor; cantar-te-ei entre as nações.'},
+    {ref:'Salmos 89:1',     texto:'As misericórdias do Senhor cantarei para sempre; de geração em geração proclamarei a tua fidelidade.'},
+    {ref:'Salmos 118:24',   texto:'Este é o dia que o Senhor fez; regozijemo-nos e alegremo-nos nele.'},
+  ];
+
+  useEffect(()=>{
+    // Versículo determinístico pelo dia do ano — mesmo para todos no mesmo dia
+    const agora=new Date();
+    const inicio=new Date(agora.getFullYear(),0,0);
+    const diaDoAno=Math.floor((agora-inicio)/(1000*60*60*24));
+    setVersiculo(VERSICULOS[diaDoAno % VERSICULOS.length]);
+  },[]);
+
   const playMusica=m=>{
     const full=musicas.find(x=>x.id===m.musicaId)||musicas.find(x=>x.nome===m.nome)||m;
-    onPlay({...m,...full,tom:m.tom}); // mantém o tom da escala
+    onPlay({...m,...full,tom:m.tom});
   };
 
   const addMusica=async m=>{
@@ -685,12 +727,22 @@ function Dashboard({usuario,escalas,musicas,avisos,onPage,onPlay,atualizarRep}){
   return(
     <div>
       <Toast msg={toast}/>
-      {/* Saudação */}
-      <div style={{marginBottom:24}}>
+
+      {/* Saudação + Versículo do dia */}
+      <div style={{marginBottom:20}}>
         <div style={{fontSize:13,color:'var(--text3)',marginBottom:4}}>
-          {hora<12?'Bom dia':hora<18?'Boa tarde':'Boa noite'}, {usuario.nome.split(' ')[0]}
+          {hora<12?'Bom dia':hora<18?'Boa tarde':'Boa noite'}, {usuario.nome.split(' ')[0]} 🎶
         </div>
-        <div style={{fontSize:26,fontWeight:800,letterSpacing:'-0.5px'}}>{usuario.papel}</div>
+        <div style={{fontSize:22,fontWeight:800,letterSpacing:'-0.5px',marginBottom:16}}>{usuario.papel}</div>
+
+        {versiculo&&(
+          <div style={{background:'linear-gradient(135deg,rgba(200,168,75,0.08),rgba(200,168,75,0.03))',border:'1px solid var(--gold-bdr)',borderRadius:16,padding:'16px 18px',cursor:'pointer'}} onClick={()=>onPage('biblia')}>
+            <div style={{fontSize:10,fontWeight:700,color:'var(--gold)',textTransform:'uppercase',letterSpacing:'1.2px',marginBottom:8}}>✦ Versículo do dia</div>
+            <div style={{fontSize:15,color:'var(--text)',lineHeight:1.6,marginBottom:8,fontStyle:'italic'}}>"{versiculo.texto}"</div>
+            <div style={{fontSize:12,color:'var(--gold)',fontWeight:600}}>{versiculo.ref}</div>
+            <div style={{fontSize:11,color:'var(--text3)',marginTop:6}}>Toque para abrir a Bíblia →</div>
+          </div>
+        )}
       </div>
 
       {/* Hero escala */}
@@ -846,7 +898,7 @@ function Escalas({escalas,setEscalas,salvarEscala,excluirEscala,atualizarRep,mus
   const [ensaio,setEnsaio]=useState(false); // modo ensaio fullscreen
   const [ensaioIdx,setEnsaioIdx]=useState(0);
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(''),2500)};
-  const MEMBROS_NOMES=['Pastor Éder','Pastora Hilda','Pastor Igor','Fran','Guilherme','Keith','Kimberly','Lucimara','Fabi','Hilma','Mara','Luciel','Katryel','Fagner','Miguel','Pablo','Nanda','Luiz','Gustavo','Wesley Fábio','Sonoplasta','Dança'];
+  const MEMBROS_NOMES=['Pastor Éder','Pastora Hilda','Pastor Igor','Fran','Guilherme','Keith','Kimberly','Lucimara','Fabi','Hilma','Mara','Luciel','Katryel','Fagner','Miguel','Pablo','Nanda','Luiz','Gustavo','Wesley Fábio'];
 
   const fBase={data:'',dia:'Domingo',culto:'2 cultos',ceia:false,ministerio:'',vocal:'',musicos:{baixo:'',guitarra:'',teclado:'',bateria:''},repertorio:[],observacoes:''};
   const [fEsc,setFEsc]=useState(fBase);
@@ -1788,6 +1840,180 @@ function Studio(){
   );
 }
 
+/* ─── BÍBLIA ──────────────────────────────────── */
+const LIVROS=[
+  {n:'Gênesis',t:'AT'},{n:'Êxodo',t:'AT'},{n:'Levítico',t:'AT'},{n:'Números',t:'AT'},
+  {n:'Deuteronômio',t:'AT'},{n:'Josué',t:'AT'},{n:'Juízes',t:'AT'},{n:'Rute',t:'AT'},
+  {n:'1 Samuel',t:'AT'},{n:'2 Samuel',t:'AT'},{n:'1 Reis',t:'AT'},{n:'2 Reis',t:'AT'},
+  {n:'1 Crônicas',t:'AT'},{n:'2 Crônicas',t:'AT'},{n:'Esdras',t:'AT'},{n:'Neemias',t:'AT'},
+  {n:'Ester',t:'AT'},{n:'Jó',t:'AT'},{n:'Salmos',t:'AT'},{n:'Provérbios',t:'AT'},
+  {n:'Eclesiastes',t:'AT'},{n:'Cantares',t:'AT'},{n:'Isaías',t:'AT'},{n:'Jeremias',t:'AT'},
+  {n:'Lamentações',t:'AT'},{n:'Ezequiel',t:'AT'},{n:'Daniel',t:'AT'},{n:'Oséias',t:'AT'},
+  {n:'Joel',t:'AT'},{n:'Amós',t:'AT'},{n:'Obadias',t:'AT'},{n:'Jonas',t:'AT'},
+  {n:'Miquéias',t:'AT'},{n:'Naum',t:'AT'},{n:'Habacuque',t:'AT'},{n:'Sofonias',t:'AT'},
+  {n:'Ageu',t:'AT'},{n:'Zacarias',t:'AT'},{n:'Malaquias',t:'AT'},
+  {n:'Mateus',t:'NT'},{n:'Marcos',t:'NT'},{n:'Lucas',t:'NT'},{n:'João',t:'NT'},
+  {n:'Atos',t:'NT'},{n:'Romanos',t:'NT'},{n:'1 Coríntios',t:'NT'},{n:'2 Coríntios',t:'NT'},
+  {n:'Gálatas',t:'NT'},{n:'Efésios',t:'NT'},{n:'Filipenses',t:'NT'},{n:'Colossenses',t:'NT'},
+  {n:'1 Tessalonicenses',t:'NT'},{n:'2 Tessalonicenses',t:'NT'},{n:'1 Timóteo',t:'NT'},
+  {n:'2 Timóteo',t:'NT'},{n:'Tito',t:'NT'},{n:'Filemom',t:'NT'},{n:'Hebreus',t:'NT'},
+  {n:'Tiago',t:'NT'},{n:'1 Pedro',t:'NT'},{n:'2 Pedro',t:'NT'},{n:'1 João',t:'NT'},
+  {n:'2 João',t:'NT'},{n:'3 João',t:'NT'},{n:'Judas',t:'NT'},{n:'Apocalipse',t:'NT'},
+];
+
+const RAPIDOS=[
+  {n:'Salmos',c:23},{n:'João',c:3},{n:'Provérbios',c:3},{n:'Mateus',c:5},
+  {n:'Romanos',c:8},{n:'Isaías',c:40},{n:'1 Coríntios',c:13},{n:'Salmos',c:150},
+];
+
+function Biblia(){
+  const [view,setView]=useState('home'); // home | livros | cap
+  const [livro,setLivro]=useState(null);
+  const [cap,setCap]=useState(1);
+  const [texto,setTexto]=useState(null);
+  const [loading,setLoading]=useState(false);
+  const [erro,setErro]=useState('');
+  const [busca,setBusca]=useState('');
+  const [vhigh,setVhigh]=useState(null);
+  const [fontSize,setFontSize]=useState(16);
+  const topoRef=useRef();
+
+  const filtrados=LIVROS.filter(l=>l.n.toLowerCase().includes(busca.toLowerCase()));
+
+  const buscarCap=async(l,c)=>{
+    setLivro(l);setCap(c);setTexto(null);setErro('');setLoading(true);setView('cap');setVhigh(null);
+    try{
+      // Tenta API em português (almeida)
+      const q=encodeURIComponent(`${l.n} ${c}`);
+      const r=await fetch(`https://bible-api.com/${q}?translation=almeida`);
+      const d=await r.json();
+      if(d.error||!d.verses) throw new Error('falhou');
+      setTexto(d);
+    }catch{
+      try{
+        // Fallback sem tradução específica
+        const q=encodeURIComponent(`${l.n} ${c}`);
+        const r=await fetch(`https://bible-api.com/${q}`);
+        const d=await r.json();
+        if(d.error) throw new Error(d.error);
+        setTexto(d);
+      }catch(e){setErro('Não foi possível carregar. Verifique sua conexão.');}
+    }
+    finally{setLoading(false);topoRef.current?.scrollTo(0,0);}
+  };
+
+  const navCap=dir=>{const c2=cap+dir;if(c2>=1)buscarCap(livro,c2);};
+
+  if(view==='home') return(
+    <div>
+      <div style={{fontSize:20,fontWeight:800,marginBottom:6}}>Bíblia Sagrada</div>
+      <div style={{fontSize:13,color:'var(--text3)',marginBottom:20}}>Almeida Revista e Corrigida</div>
+
+      <div style={{marginBottom:20}}>
+        <div style={{fontSize:12,color:'var(--text3)',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:10}}>Acesso rápido</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          {RAPIDOS.map(({n,c},i)=>{
+            const l=LIVROS.find(x=>x.n===n);
+            return l?(
+              <button key={i} onClick={()=>buscarCap(l,c)}
+                style={{padding:'12px 14px',borderRadius:12,background:'var(--surface)',border:'1px solid var(--bg3)',cursor:'pointer',textAlign:'left',transition:'border-color 0.1s'}}
+                onMouseEnter={e=>e.currentTarget.style.borderColor='var(--gold)'}
+                onMouseLeave={e=>e.currentTarget.style.borderColor='var(--bg3)'}
+              >
+                <div style={{fontSize:14,fontWeight:600}}>{n}</div>
+                <div style={{fontSize:11,color:'var(--text3)'}}>Capítulo {c}</div>
+              </button>
+            ):null;
+          })}
+        </div>
+      </div>
+
+      <button className="btn btn-gold" style={{width:'100%',justifyContent:'center'}} onClick={()=>setView('livros')}>
+        <Ico n="search" s={16}/>Ver todos os livros
+      </button>
+    </div>
+  );
+
+  if(view==='livros') return(
+    <div>
+      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:16}}>
+        <button onClick={()=>setView('home')} className="btn-icon"><Ico n="chevron" s={16} st={{transform:'rotate(180deg)'}}/></button>
+        <div style={{fontSize:18,fontWeight:800}}>Livros da Bíblia</div>
+      </div>
+      <div className="search-wrap" style={{marginBottom:16}}>
+        <Ico n="search"/>
+        <input className="search-inp" placeholder="Buscar livro..." value={busca} onChange={e=>setBusca(e.target.value)} autoFocus/>
+      </div>
+      {[{label:'Antigo Testamento',lista:filtrados.filter(l=>l.t==='AT')},{label:'Novo Testamento',lista:filtrados.filter(l=>l.t==='NT')}].map(({label,lista})=>
+        lista.length>0&&(
+          <div key={label} style={{marginBottom:24}}>
+            <div style={{fontSize:12,color:'var(--text3)',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:10}}>{label}</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+              {lista.map(l=>(
+                <button key={l.n} onClick={()=>buscarCap(l,1)}
+                  style={{padding:'10px 14px',borderRadius:10,background:'var(--surface)',border:'1px solid var(--bg3)',cursor:'pointer',textAlign:'left',fontSize:14,fontWeight:500,transition:'border-color 0.1s'}}
+                  onMouseEnter={e=>e.currentTarget.style.borderColor='var(--gold)'}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor='var(--bg3)'}
+                >{l.n}</button>
+              ))}
+            </div>
+          </div>
+        )
+      )}
+    </div>
+  );
+
+  // Leitura
+  return(
+    <div ref={topoRef}>
+      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:20}}>
+        <button onClick={()=>setView('livros')} className="btn-icon"><Ico n="chevron" s={16} st={{transform:'rotate(180deg)'}}/></button>
+        <div style={{flex:1}}>
+          <div style={{fontSize:18,fontWeight:800}}>{livro?.n}</div>
+          <div style={{fontSize:13,color:'var(--text3)'}}>Capítulo {cap}</div>
+        </div>
+        <button onClick={()=>setFontSize(f=>Math.max(12,f-2))} className="btn-icon" style={{fontSize:13,fontWeight:700}}>A−</button>
+        <button onClick={()=>setFontSize(f=>Math.min(26,f+2))} className="btn-icon" style={{fontSize:13,fontWeight:700}}>A+</button>
+      </div>
+
+      {loading&&<div style={{textAlign:'center',padding:'60px 0',color:'var(--text3)',fontSize:15}}>Carregando...</div>}
+      {erro&&<div style={{background:'rgba(224,85,85,0.1)',border:'1px solid rgba(224,85,85,0.3)',borderRadius:12,padding:16,color:'var(--red)',fontSize:14}}>{erro}</div>}
+
+      {texto&&!loading&&(
+        <>
+          <div style={{lineHeight:2,fontSize:fontSize,color:'var(--text)'}}>
+            {texto.verses?.map(v=>(
+              <span key={v.verse} onClick={()=>setVhigh(vhigh===v.verse?null:v.verse)}
+                style={{cursor:'pointer',background:vhigh===v.verse?'rgba(200,168,75,0.18)':'transparent',borderRadius:4,padding:'1px 2px',transition:'background 0.15s',display:'inline'}}>
+                <sup style={{fontSize:fontSize*0.6,color:'var(--gold)',fontWeight:700,marginRight:2}}>{v.verse}</sup>
+                {v.text}{' '}
+              </span>
+            ))}
+          </div>
+
+          {/* Versículo destacado — flutuante */}
+          {vhigh&&(
+            <div style={{position:'fixed',bottom:80,left:16,right:16,zIndex:100}}>
+              <div style={{background:'var(--bg2)',border:'1px solid var(--gold-bdr)',borderRadius:16,padding:'14px 16px',boxShadow:'0 8px 32px rgba(0,0,0,0.6)',position:'relative'}}>
+                <div style={{fontSize:11,color:'var(--gold)',fontWeight:700,marginBottom:6}}>{livro?.n} {cap}:{vhigh}</div>
+                <div style={{fontSize:14,lineHeight:1.7}}>{texto.verses?.find(v=>v.verse===vhigh)?.text}</div>
+                <button onClick={()=>setVhigh(null)} style={{position:'absolute',top:8,right:10,background:'none',border:'none',color:'var(--text3)',cursor:'pointer',fontSize:18,lineHeight:1}}>×</button>
+              </div>
+            </div>
+          )}
+
+          {/* Nav capítulos */}
+          <div style={{display:'flex',gap:10,marginTop:32,paddingBottom:32}}>
+            <button onClick={()=>navCap(-1)} className="btn btn-ghost" style={{flex:1,justifyContent:'center'}} disabled={cap<=1}>← Cap. {cap-1}</button>
+            <button onClick={()=>setView('livros')} className="btn-icon"><Ico n="search" s={16}/></button>
+            <button onClick={()=>navCap(1)} className="btn btn-gold" style={{flex:1,justifyContent:'center'}}>Cap. {cap+1} →</button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ─── CONFIGURAÇÕES ───────────────────────────── */
 function Config({membros,usuario}){
   const [toast,setToast]=useState('');
@@ -2029,11 +2255,13 @@ function App(){
   const PAGES=isVis?[
     {id:'escalas',l:'Escalas', n:'cal'},
     {id:'musicas',l:'Músicas', n:'music'},
+    {id:'biblia', l:'Bíblia',  n:'book'},
   ]:[
     {id:'home',   l:'Início',  n:'home'},
     {id:'escalas',l:'Escalas', n:'cal'},
     {id:'musicas',l:'Músicas', n:'music'},
     {id:'avisos', l:'Avisos',  n:'bell', badge:naoLidos>0?naoLidos:null},
+    {id:'biblia', l:'Bíblia',  n:'book'},
     {id:'membros',l:'Membros', n:'users'},
   ];
 
@@ -2064,6 +2292,7 @@ function App(){
               </div>
             ))}
             {isAdmin&&<div className={`sidebar-item${page==='studio'?' active':''}`} onClick={()=>navPage('studio')}><Ico n="mic" s={18}/>Studio ✦</div>}
+            <div className={`sidebar-item${page==='biblia'?' active':''}`} onClick={()=>navPage('biblia')}><Ico n="book" s={18}/>Bíblia</div>
             {isAdmin&&<div className={`sidebar-item${page==='config'?' active':''}`} onClick={()=>navPage('config')}><Ico n="gear" s={18}/>Configurações</div>}
           </div>
           <div className="sidebar-footer">
@@ -2097,6 +2326,7 @@ function App(){
           {page==='musicas' &&<Musicas musicas={musicas} salvarMusica={salvarMusica} excluirMusica={excluirMusica} onPlay={openPlayer} usuario={usuario}/>}
           {page==='avisos'  &&!isVis&&<Avisos avisos={avisosVis} setAvisos={setAvisos} salvarAviso={salvarAviso} excluirAviso={excluirAviso} membros={membros} usuario={usuario} onPage={navPage}/>}
           {page==='membros' &&!isVis&&<Membros membros={membros} salvarMembro={salvarMembro} excluirMembro={excluirMembro} usuario={usuario}/>}
+          {page==='biblia'  &&<Biblia/>}
           {page==='studio'  &&!isVis&&<Studio/>}
           {page==='config'  &&isAdmin&&<Config membros={membros} usuario={usuario}/>}
         </div>
